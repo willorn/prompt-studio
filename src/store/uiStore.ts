@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { layoutManager, type LayoutPreference } from '@/services/layoutManager';
 
 interface UiState {
   // Sidebar
@@ -17,6 +18,15 @@ interface UiState {
   setCanvasTransform: (scale: number, position: { x: number; y: number }) => void;
   resetCanvasTransform: () => void;
 
+  // Layout Preference
+  layoutPreference: LayoutPreference;
+  isDraggingSplitter: boolean;
+  setCanvasRatio: (ratio: number) => void;
+  startDragging: () => void;
+  stopDragging: () => void;
+  loadLayoutPreference: () => void;
+  saveLayoutPreference: () => void;
+
   // Modals
   diffModalOpen: boolean;
   diffVersionIds: { a: string | null; b: string | null };
@@ -31,7 +41,7 @@ interface UiState {
   setLoading: (loading: boolean) => void;
 }
 
-export const useUiStore = create<UiState>((set) => ({
+export const useUiStore = create<UiState>((set, get) => ({
   sidebarCollapsed: false,
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
@@ -58,6 +68,39 @@ export const useUiStore = create<UiState>((set) => ({
   setCanvasTransform: (scale, position) =>
     set({ canvasScale: scale, canvasPosition: position }),
   resetCanvasTransform: () => set({ canvasScale: 1, canvasPosition: { x: 0, y: 0 } }),
+
+  layoutPreference: layoutManager.loadPreference(),
+  isDraggingSplitter: false,
+  
+  setCanvasRatio: (ratio) => {
+    set((state) => ({
+      layoutPreference: {
+        ...state.layoutPreference,
+        canvasPanelWidthRatio: ratio,
+      },
+    }));
+  },
+
+  startDragging: () => {
+    set({ isDraggingSplitter: true });
+  },
+
+  stopDragging: () => {
+    set({ isDraggingSplitter: false });
+    get().saveLayoutPreference();
+  },
+
+  loadLayoutPreference: () => {
+    set({ layoutPreference: layoutManager.loadPreference() });
+  },
+
+  saveLayoutPreference: () => {
+    const { layoutPreference } = get();
+    layoutManager.saveCanvasRatio(layoutPreference.canvasPanelWidthRatio);
+    if (layoutPreference.sidebarCollapsed !== undefined) {
+      layoutManager.saveSidebarCollapsed(layoutPreference.sidebarCollapsed);
+    }
+  },
 
   diffModalOpen: false,
   diffVersionIds: { a: null, b: null },

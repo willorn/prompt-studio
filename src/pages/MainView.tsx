@@ -8,6 +8,12 @@ import PromptEditor from '@/components/editor/PromptEditor';
 import EditorToolbar from '@/components/editor/EditorToolbar';
 import VersionCanvas from '@/components/canvas/VersionCanvas';
 import { AttachmentGallery } from '@/components/version/AttachmentGallery';
+import { CompareModal } from '@/components/version/CompareModal';
+import { useVersionCompare } from '@/hooks/useVersionCompare';
+import { DuplicateDialog } from '@/components/common/DuplicateDialog';
+import { ResizableSplitter } from '@/components/common/ResizableSplitter';
+import { useUiStore } from '@/store/uiStore';
+import type { Version } from '@/models/Version';
 
 const MainView: React.FC = () => {
   const { currentProjectId } = useProjectStore();
@@ -19,10 +25,46 @@ const MainView: React.FC = () => {
     updateVersionInPlace,
     setCurrentVersion,
   } = useVersionStore();
+  
+  // 布局偏好设置
+  const {
+    layoutPreference,
+    setCanvasRatio,
+    startDragging,
+    stopDragging,
+  } = useUiStore();
 
   const [editorContent, setEditorContent] = useState('');
   const [canSaveInPlace, setCanSaveInPlace] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  // 重复提醒对话框状态
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateVersion, setDuplicateVersion] = useState<Version | null>(null);
+  const [pendingSaveData, setPendingSaveData] = useState<{
+    projectId: string;
+    content: string;
+    parentId: string | null;
+  } | null>(null);
+
+  // 版本对比hook
+  const {
+    isOpen: compareModalOpen,
+    sourceVersion,
+    targetVersion,
+    availableVersions,
+    handleOpenCompare,
+    handleSelectTarget,
+    handleClose: closeCompare,
+  } = useVersionCompare();
+
+  const handleCompare = () => {
+    if (!currentVersionId) {
+      alert('请先选择一个版本');
+      return;
+    }
+    handleOpenCompare(currentVersionId);
+  };
 
   // 加载项目的版本
   useEffect(() => {
@@ -51,9 +93,8 @@ const MainView: React.FC = () => {
       if (version) {
         setEditorContent(version.content);
         
-        // 检查是否可以原地保存（叶子节点）
-        const children = versions.filter((v) => v.parentId === currentVersionId);
-        setCanSaveInPlace(children.length === 0);
+        // User Story 4: 所有版本都可以原地保存
+        setCanSaveInPlace(true);
 
         // 加载附件
         loadAttachments(currentVersionId);
@@ -83,13 +124,60 @@ const MainView: React.FC = () => {
       const versionId = await createVersion(
         currentProjectId,
         editorContent,
-        currentVersionId
+        currentVersionId,
+        false // 不跳过重复检测
       );
       setCurrentVersion(versionId);
       await loadVersions(currentProjectId);
     } catch (error) {
+      // 检查是否是重复检测错误
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('DUPLICATE_DETECTED:')) {
+        const duplicateId = errorMessage.split(':')[1];
+        const duplicate = versions.find(v => v.id === duplicateId);
+        
+        if (duplicate) {
+          setDuplicateVersion(duplicate);
+          setPendingSaveData({
+            projectId: currentProjectId,
+            content: editorContent,
+            parentId: currentVersionId,
+          });
+          setShowDuplicateDialog(true);
+        }
+      } else {
+        alert(`保存失败: ${error}`);
+      }
+    }
+  };
+
+  const handleConfirmDuplicateCreate = async () => {
+    if (!pendingSaveData) return;
+
+    try {
+      // 强制创建(跳过重复检测)
+      const versionId = await createVersion(
+        pendingSaveData.projectId,
+        pendingSaveData.content,
+        pendingSaveData.parentId,
+        true // 跳过重复检测
+      );
+      setCurrentVersion(versionId);
+      await loadVersions(pendingSaveData.projectId);
+      
+      // 清理状态
+      setShowDuplicateDialog(false);
+      setDuplicateVersion(null);
+      setPendingSaveData(null);
+    } catch (error) {
       alert(`保存失败: ${error}`);
     }
+  };
+
+  const handleCancelDuplicateCreate = () => {
+    setShowDuplicateDialog(false);
+    setDuplicateVersion(null);
+    setPendingSaveData(null);
   };
 
   const handleSaveInPlace = async () => {
@@ -98,9 +186,14 @@ const MainView: React.FC = () => {
       return;
     }
 
-    if (!canSaveInPlace) {
-      alert('只能原地更新叶子节点');
-      return;
+    // User Story 4: 允许所有版本原地保存
+    // 对于非叶子节点，提示用户(可选)
+    const children = versions.filter((v) => v.parentId === currentVersionId);
+    if (children.length > 0) {
+      const confirmed = confirm(
+        `此版本有 ${children.length} 个子版本。原地保存将修改历史版本内容。是否继续？`
+      );
+      if (!confirmed) return;
     }
 
     try {
@@ -124,10 +217,14 @@ const MainView: React.FC = () => {
         <Sidebar />
 
         {/* 中央编辑区 */}
-        <div className="flex-1 flex flex-col">
+        <div 
+          className="flex flex-col"
+          style={{ width: `${layoutPreference.canvasPanelWidthRatio * 100}%` }}
+        >
           <EditorToolbar
             onSave={handleSave}
             onSaveInPlace={handleSaveInPlace}
+            onCompare={handleCompare}
             canSaveInPlace={canSaveInPlace}
           />
 
@@ -167,14 +264,45 @@ const MainView: React.FC = () => {
           </div>
         </div>
 
+        {/* 可拖动分隔符 */}
+        <ResizableSplitter
+          ratio={layoutPreference.canvasPanelWidthRatio}
+          onRatioChange={setCanvasRatio}
+          onDragStart={startDragging}
+          onDragEnd={stopDragging}
+          minRatio={0.2}
+          maxRatio={0.8}
+        />
+
         {/* 右侧画布区 - 版本树可视化 */}
-        <div className="w-[500px] border-l border-surface-onVariant/20">
+        <div 
+          className="border-l border-surface-onVariant/20"
+          style={{ width: `${(1 - layoutPreference.canvasPanelWidthRatio) * 100}%` }}
+        >
           <VersionCanvas
             projectId={currentProjectId}
             onNodeClick={(versionId) => setCurrentVersion(versionId)}
           />
         </div>
       </div>
+
+      {/* 版本对比模态框 */}
+      <CompareModal
+        isOpen={compareModalOpen}
+        sourceVersion={sourceVersion}
+        targetVersion={targetVersion}
+        availableVersions={availableVersions}
+        onSelectTarget={handleSelectTarget}
+        onClose={closeCompare}
+      />
+
+      {/* 重复内容提醒对话框 */}
+      <DuplicateDialog
+        isOpen={showDuplicateDialog}
+        duplicateVersion={duplicateVersion}
+        onConfirm={handleConfirmDuplicateCreate}
+        onCancel={handleCancelDuplicateCreate}
+      />
     </div>
   );
 };

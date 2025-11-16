@@ -1,13 +1,28 @@
 /**
  * Diff 对比服务
- * 基于 diff-match-patch 算法
+ * 基于 diff-match-patch 算法和 @codemirror/merge
  */
 
 import DiffMatchPatch from 'diff-match-patch';
+import { EditorState, Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import { markdown } from '@codemirror/lang-markdown';
 
 export interface DiffResult {
   operation: 'equal' | 'insert' | 'delete';
   text: string;
+}
+
+/**
+ * CodeMirror扩展配置
+ * 用于Diff视图的只读编辑器
+ */
+export function createDiffEditorExtensions(): Extension[] {
+  return [
+    markdown(),
+    EditorState.readOnly.of(true),
+    EditorView.editable.of(false),
+  ];
 }
 
 export class DiffService {

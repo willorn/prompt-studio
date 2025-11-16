@@ -3,6 +3,8 @@ import { useVersionStore } from '@/store/versionStore';
 import { CanvasRenderer } from '@/services/canvasRenderer';
 import { CanvasInteraction } from '@/services/canvasInteraction';
 import { Button } from '@/components/common/Button';
+import { SearchBar } from '@/components/canvas/SearchBar';
+import { useVersionSearch } from '@/hooks/useVersionSearch';
 
 interface VersionCanvasProps {
   projectId: string | null;
@@ -20,6 +22,21 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
 
   const { versions, currentVersionId, deleteVersion, createVersion } = useVersionStore();
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+
+  // 版本搜索
+  const {
+    query,
+    currentIndex,
+    total,
+    isActive: searchActive,
+    handleQueryChange,
+    handleNext,
+    handlePrev,
+    handleClear,
+    getCurrentMatchId,
+    isVersionMatched,
+    isCurrentMatch,
+  } = useVersionSearch();
 
   // 初始化 Canvas - 在canvas元素实际渲染后执行
   useEffect(() => {
@@ -77,6 +94,18 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
     const projectVersions = versions.filter((v) => v.projectId === projectId);
     rendererRef.current.renderTree(projectVersions);
   }, [versions, projectId]);
+
+  // 搜索结果高亮和自动滚动
+  useEffect(() => {
+    if (!rendererRef.current || !searchActive) return;
+
+    const currentMatchId = getCurrentMatchId();
+    if (currentMatchId) {
+      // 选中当前匹配的版本
+      rendererRef.current.selectNode(currentMatchId);
+      // 可以添加高亮效果到渲染器(需要扩展CanvasRenderer)
+    }
+  }, [searchActive, currentIndex, getCurrentMatchId]);
 
   const handleResetView = () => {
     rendererRef.current?.resetView();
@@ -144,9 +173,23 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
         style={{ display: 'block', position: 'relative', zIndex: 1 }}
       />
 
-      {/* 版本操作按钮 - 浮现在选中版本上方 */}
+      {/* 搜索栏 */}
+      <div className="absolute top-4 left-4 right-4 z-10 max-w-md">
+        <SearchBar
+          query={query}
+          currentIndex={currentIndex}
+          total={total}
+          onQueryChange={handleQueryChange}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onClear={handleClear}
+          placeholder="搜索版本内容..."
+        />
+      </div>
+
+      {/* 版本操作按钮 */}
       {selectedVersionId && (
-        <div className="absolute top-4 left-4 flex gap-2 z-10">
+        <div className="absolute top-20 left-4 flex gap-2 z-10">
           <Button
             variant="filled"
             size="small"
@@ -166,13 +209,14 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
         </div>
       )}
 
-      {/* 工具栏 */}
-      <div className="absolute top-4 right-4 flex gap-2 z-10">
+      {/* 画布控制按钮 - 移至右下角 (US6) */}
+      <div className="absolute bottom-4 right-4 flex gap-2 z-10">
         <Button
           variant="filled"
           size="small"
           onClick={handleZoomIn}
-          title="放大 (Ctrl + 滚轮向上)"
+          title="放大"
+          aria-label="放大画布"
         >
           🔍+
         </Button>
@@ -180,7 +224,8 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
           variant="filled"
           size="small"
           onClick={handleZoomOut}
-          title="缩小 (Ctrl + 滚轮向下)"
+          title="缩小"
+          aria-label="缩小画布"
         >
           🔍-
         </Button>
@@ -189,15 +234,10 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
           size="small"
           onClick={handleResetView}
           title="重置视图"
+          aria-label="重置画布视图"
         >
-          ↺ 重置
+          ↺
         </Button>
-      </div>
-
-      {/* 提示信息 */}
-      <div className="absolute bottom-4 left-4 bg-surface/90 px-3 py-2 rounded-m3-small text-sm text-surface-onVariant shadow-m3-1 z-10">
-        <p>🖱️ 拖拽画布平移 | 🔍 滚轮缩放</p>
-        <p>💡 点击节点查看版本内容</p>
       </div>
     </div>
   );
