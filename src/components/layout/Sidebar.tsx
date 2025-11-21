@@ -26,7 +26,7 @@ const Sidebar: React.FC = () => {
     if (projectName && projectName.trim()) {
       // 查找或创建默认根文件夹
       let rootFolderId = 'root';
-      const folders = await loadFolders();
+      await loadFolders();
       
       // 创建项目和初始根版本
       const projectId = await createProject(projectName.trim(), rootFolderId);
@@ -73,20 +73,25 @@ const Sidebar: React.FC = () => {
           </button>
         </div>
         <div className="flex gap-2 justify-center">
-          <Button variant="outlined" size="small" onClick={handleCreateFolder} className="w-10 h-10 p-0 flex items-center justify-center" title="新建文件夹">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              <line x1="12" y1="11" x2="12" y2="17" />
-              <line x1="9" y1="14" x2="15" y2="14" />
-            </svg>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={handleCreateFolder} 
+            className="w-10 h-10 p-0 flex items-center justify-center relative" 
+            title="新建文件夹"
+          >
+            <span className="text-base leading-none">📁</span>
+            <span className="absolute top-0 right-1 text-base leading-none font-bold opacity-70">+</span>
           </Button>
-          <Button variant="outlined" size="small" onClick={handleCreateProject} className="w-10 h-10 p-0 flex items-center justify-center" title="新建项目">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14,2 14,8 20,8" />
-              <line x1="12" y1="18" x2="12" y2="12" />
-              <line x1="9" y1="15" x2="15" y2="15" />
-            </svg>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={handleCreateProject} 
+            className="w-10 h-10 p-0 flex items-center justify-center relative" 
+            title="新建项目"
+          >
+            <span className="text-base leading-none">📄</span>
+            <span className="absolute top-0 right-1 text-base leading-none font-bold opacity-70">+</span>
           </Button>
         </div>
       </div>

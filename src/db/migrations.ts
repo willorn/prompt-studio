@@ -14,7 +14,7 @@ import { db } from './schema';
  */
 export async function checkMigrationNeeded(): Promise<boolean> {
   const currentVersion = db.verno;
-  const latestVersion = 1; // 当前最新版本
+  const latestVersion = 2; // 当前最新版本
   
   return currentVersion < latestVersion;
 }
@@ -23,7 +23,17 @@ export async function checkMigrationNeeded(): Promise<boolean> {
  * 执行数据库迁移
  */
 export async function runMigrations(): Promise<void> {
-  // 当前仅有版本 1,无需迁移
-  // 未来版本升级时在此添加迁移逻辑
+  // 版本2：添加版本名称支持
+  db.version(2).stores({
+    folders: 'id, parentId, createdAt',
+    projects: 'id, folderId, updatedAt, createdAt',
+    versions: 'id, projectId, parentId, contentHash, updatedAt, createdAt, name',
+    snippets: 'id, name, createdAt',
+    attachments: 'id, versionId',
+  }).upgrade(() => {
+    // 无需数据迁移，name字段是可选的
+    console.log('Upgraded to version 2: Added version name support');
+  });
+  
   console.log(`Database version: ${db.verno}`);
 }

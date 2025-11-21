@@ -7,5 +7,6 @@ export interface Version {
   content: string;
   normalizedContent: string;
   contentHash: string;
+  name?: string; // 版本名称，可选
   score?: number;
 }

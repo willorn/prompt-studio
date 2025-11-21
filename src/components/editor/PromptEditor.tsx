@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import CodeMirror, { EditorView, keymap } from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { search, openSearchPanel, closeSearchPanel } from '@codemirror/search';
@@ -10,19 +10,43 @@ interface PromptEditorProps {
   onChange: (value: string) => void;
   onSave?: () => void;
   onSaveInPlace?: () => void;
+  onFocusVersionName?: () => void;
   readOnly?: boolean;
 }
 
-const PromptEditor: React.FC<PromptEditorProps> = ({
+export interface PromptEditorRef {
+  focus: () => void;
+}
+
+const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
   value,
   onChange,
   onSave,
   onSaveInPlace,
+  onFocusVersionName,
   readOnly = false,
-}) => {
+}, ref) => {
   const { editorFontSize, editorLineHeight } = useSettingsStore();
   const [view, setView] = useState<EditorView | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // 暴露聚焦方法给父组件
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (view) {
+        view.focus();
+        // 将光标移动到文档末尾
+        const lastLine = view.state.doc.lines;
+        const lastLineLength = view.state.doc.line(lastLine).length;
+        view.dispatch({
+          selection: { 
+            anchor: view.state.doc.line(lastLine).from + lastLineLength,
+            head: view.state.doc.line(lastLine).from + lastLineLength
+          }
+        });
+      }
+    },
+  }), [view]);
 
   // M3 主题 - 填满父区域，使用浏览器默认等宽字体
   const theme = EditorView.theme({
@@ -265,8 +289,8 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
     {
       key: 'Ctrl-Enter',
       run: () => {
-        if (onSave) {
-          onSave();
+        if (onSaveInPlace) {
+          onSaveInPlace();
           return true;
         }
         return false;
@@ -275,8 +299,40 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
     {
       key: 'Ctrl-Shift-Enter',
       run: () => {
+        if (onSave) {
+          onSave();
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      key: 'Ctrl-s',
+      preventDefault: true,
+      run: () => {
         if (onSaveInPlace) {
           onSaveInPlace();
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      key: 'Ctrl-Shift-s',
+      preventDefault: true,
+      run: () => {
+        if (onSave) {
+          onSave();
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      key: 'Shift-Tab',
+      run: () => {
+        if (onFocusVersionName) {
+          onFocusVersionName();
           return true;
         }
         return false;
@@ -331,6 +387,6 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
       />
     </div>
   );
-};
+});
 
 export default PromptEditor;

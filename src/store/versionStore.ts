@@ -8,6 +8,12 @@ interface VersionState {
   // State
   versions: Version[];
   currentVersionId: string | null;
+  compareMode: boolean; // 对比选择模式状态
+  compareState: {
+    isOpen: boolean;
+    sourceVersionId: string | null;
+    targetVersionId: string | null;
+  };
 
   // Actions
   loadVersions: (projectId: string) => Promise<void>;
@@ -15,18 +21,25 @@ interface VersionState {
     projectId: string,
     content: string,
     parentId: string | null,
-    skipDuplicateCheck?: boolean
+    skipDuplicateCheck?: boolean,
+    name?: string
   ) => Promise<string>;
-  updateVersionInPlace: (id: string, content: string) => Promise<void>;
+  updateVersionInPlace: (id: string, content: string, name?: string) => Promise<void>;
+  updateVersionName: (id: string, name: string) => Promise<void>;
   deleteVersion: (id: string) => Promise<void>;
   updateVersionScore: (id: string, score: number) => Promise<void>;
   setCurrentVersion: (id: string | null) => void;
   checkDuplicate: (content: string) => Promise<Version | null>;
+  openCompare: (sourceVersionId: string) => void;
+  setCompareTarget: (targetVersionId: string) => void;
+  closeCompare: () => void;
+  toggleCompareMode: (sourceVersionId?: string | null) => void;
 }
 
 export const useVersionStore = create<VersionState>((set, get) => ({
   versions: [],
   currentVersionId: null,
+  compareMode: false,
   compareState: {
     isOpen: false,
     sourceVersionId: null,
@@ -38,7 +51,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     set({ versions });
   },
 
-  createVersion: async (projectId, content, parentId, skipDuplicateCheck = false) => {
+  createVersion: async (projectId, content, parentId, skipDuplicateCheck = false, name) => {
     const normalizedContent = normalize(content);
     const contentHash = computeContentHash(content);
 
@@ -59,6 +72,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
       content,
       normalizedContent,
       contentHash,
+      name, // 添加版本名称（可选）
     };
 
     await db.transaction('rw', db.versions, db.projects, async () => {
@@ -74,7 +88,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     return version.id;
   },
 
-  updateVersionInPlace: async (id, content) => {
+  updateVersionInPlace: async (id, content, name) => {
     const version = await db.versions.get(id);
     if (!version) return;
 
@@ -92,6 +106,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
         content,
         normalizedContent,
         contentHash,
+        name, // 更新版本名称
         updatedAt: Date.now(),
       });
       await db.projects.update(version.projectId, { updatedAt: Date.now() });
@@ -100,8 +115,27 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     set((state) => ({
       versions: state.versions.map((v) =>
         v.id === id
-          ? { ...v, content, normalizedContent, contentHash, updatedAt: Date.now() }
+          ? { ...v, content, normalizedContent, contentHash, name, updatedAt: Date.now() }
           : v
+      ),
+    }));
+  },
+
+  updateVersionName: async (id, name) => {
+    const version = await db.versions.get(id);
+    if (!version) return;
+
+    await db.transaction('rw', db.versions, db.projects, async () => {
+      await db.versions.update(id, {
+        name,
+        updatedAt: Date.now(),
+      });
+      await db.projects.update(version.projectId, { updatedAt: Date.now() });
+    });
+
+    set((state) => ({
+      versions: state.versions.map((v) =>
+        v.id === id ? { ...v, name, updatedAt: Date.now() } : v
       ),
     }));
   },
@@ -177,21 +211,59 @@ export const useVersionStore = create<VersionState>((set, get) => ({
   },
 
   setCompareTarget: (targetVersionId) => {
-    set((state) => ({
-      compareState: {
+    set((state) => {
+      const newState = {
         ...state.compareState,
         targetVersionId,
-      },
-    }));
+      };
+      
+      // 如果目标版本已设置，则打开对比模态框
+      if (targetVersionId) {
+        newState.isOpen = true;
+      }
+      
+      return {
+        compareState: newState,
+        compareMode: false, // 设置目标后退出对比模式
+        // 不改变currentVersionId，保持对比前的版本选中状态
+      };
+    });
   },
 
   closeCompare: () => {
-    set({
+    set((_) => ({
       compareState: {
         isOpen: false,
         sourceVersionId: null,
         targetVersionId: null,
       },
-    });
+      compareMode: false,
+      // 不改变currentVersionId，保持对比前的版本选中状态
+    }));
+  },
+
+  toggleCompareMode: (sourceVersionId = null) => {
+    const currentCompareMode = get().compareMode;
+    
+    if (currentCompareMode) {
+      // 退出对比模式
+      set({ compareMode: false });
+    } else {
+      // 进入对比模式
+      if (!sourceVersionId) {
+        sourceVersionId = get().currentVersionId;
+      }
+      
+      if (sourceVersionId) {
+        set({ 
+          compareMode: true,
+          compareState: {
+            isOpen: false,
+            sourceVersionId,
+            targetVersionId: null,
+          }
+        });
+      }
+    }
   },
 }));

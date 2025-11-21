@@ -4,6 +4,7 @@ import { useUiStore } from '@/store/uiStore';
 import type { Folder } from '@/models/Folder';
 import type { Project } from '@/models/Project';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
+import { sortByName } from '@/utils/tree';
 
 interface FolderTreeProps {
   onProjectSelect?: (projectId: string) => void;
@@ -76,8 +77,8 @@ const FolderItem: React.FC<TreeItemProps> = ({
   const { folders, projects } = useProjectStore();
   const isExpanded = expanded.has(folder.id);
   
-  const childFolders = folders.filter((f) => f.parentId === folder.id);
-  const childProjects = projects.filter((p) => p.folderId === folder.id);
+  const childFolders = sortByName(folders.filter((f) => f.parentId === folder.id));
+  const childProjects = sortByName(projects.filter((p) => p.folderId === folder.id));
 
   return (
     <div>
@@ -203,7 +204,7 @@ const ProjectItemConnected: React.FC<{ project: Project; level: number }> = ({
   );
 };
 
-export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect }) => {
+export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProjectSelect }) => {
   const {
     folders,
     projects,
@@ -327,8 +328,8 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect }) => {
     },
   ];
 
-  const rootFolders = folders.filter((f) => f.parentId === null);
-  const rootProjects = projects.filter((p) => p.folderId === null || p.folderId === 'root');
+  const rootFolders = sortByName(folders.filter((f) => f.parentId === null));
+  const rootProjects = sortByName(projects.filter((p) => p.folderId === null || p.folderId === 'root'));
 
   return (
     <div className="flex flex-col h-full">

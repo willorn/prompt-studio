@@ -2,7 +2,7 @@
 description: 
 alwaysApply: true
 enabled: true
-updatedAt: 2025-11-18T02:44:00.427Z
+updatedAt: 2025-11-20T08:45:18.623Z
 provider: 
 ---
 
@@ -10,6 +10,7 @@ provider:
 
 ## 规则
 - 不要重复启动应用，先确认是否 5173 端口是否在运行，如果在运行，先杀死该进程
+- 编码完成后、测试前，执行`pnpm build`检查是否能编译通过、是否有lint、语法错误
 
 ## 测试
 - 对于关键逻辑函数，要有单测

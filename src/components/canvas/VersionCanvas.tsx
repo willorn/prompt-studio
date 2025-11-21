@@ -9,18 +9,28 @@ import { useVersionSearch } from '@/hooks/useVersionSearch';
 interface VersionCanvasProps {
   projectId: string | null;
   onNodeClick?: (versionId: string) => void;
+  hasProject?: boolean;
 }
 
 const VersionCanvas: React.FC<VersionCanvasProps> = ({
   projectId,
   onNodeClick,
+  hasProject = false,
 }) => {
+  // 对比模式下的处理函数
+  const handleCompare = () => {
+    if (compareMode) {
+      toggleCompareMode(); // 退出对比模式
+    } else if (currentVersionId) {
+      toggleCompareMode(currentVersionId); // 进入对比模式，使用当前版本作为源版本
+    }
+  };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const interactionRef = useRef<CanvasInteraction | null>(null);
   const onNodeClickRef = useRef(onNodeClick);
 
-  const { versions, currentVersionId, deleteVersion, createVersion } = useVersionStore();
+  const { versions, currentVersionId, deleteVersion, compareMode, toggleCompareMode, compareState } = useVersionStore();
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [searchVisible, setSearchVisible] = useState(false); // 控制搜索框的显示状态
   const searchInputRef = useRef<HTMLInputElement>(null); // 搜索框引用，用于聚焦
@@ -36,8 +46,6 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
     handlePrev,
     handleClear,
     getCurrentMatchId,
-    isVersionMatched,
-    isCurrentMatch,
   } = useVersionSearch();
 
   // Canvas焦点状态跟踪
@@ -82,8 +90,17 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
     
     // 包装 onNodeClick 以更新选中状态
     const handleNodeClick = (versionId: string) => {
+      // 如果在对比模式，且点击的不是源版本，则不改变选中状态
+      if (compareMode && compareState.sourceVersionId && versionId !== compareState.sourceVersionId) {
+        // 在对比模式下点击不同版本，只触发对比，不改变选中状态
+        if (onNodeClickRef.current) {
+          onNodeClickRef.current(versionId);
+        }
+        return;
+      }
+      
+      // 非对比模式或对比模式下点击源版本，更新选中状态
       setSelectedVersionId(versionId);
-      // 直接调用最新的onNodeClick,通过ref获取
       if (onNodeClickRef.current) {
         onNodeClickRef.current(versionId);
       }
@@ -118,11 +135,22 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
     canvasRef.current.addEventListener('blur', handleCanvasBlur);
     window.addEventListener('resize', handleResize);
 
+    // 使用 ResizeObserver 监听 canvas 容器尺寸变化
+    const resizeObserver = new ResizeObserver(() => {
+      renderer.resizeCanvas();
+    });
+    
+    // 监听 canvas 的父容器
+    if (canvasRef.current.parentElement) {
+      resizeObserver.observe(canvasRef.current.parentElement);
+    }
+
     return () => {
       interaction.destroy();
       window.removeEventListener('resize', handleResize);
       canvasRef.current?.removeEventListener('focus', handleCanvasFocus);
       canvasRef.current?.removeEventListener('blur', handleCanvasBlur);
+      resizeObserver.disconnect();
     };
   }, [projectId]); // 依赖projectId,在项目选中后初始化
 
@@ -138,6 +166,23 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
       setSelectedVersionId(currentVersionId);
     }
   }, [currentVersionId]);
+
+  // 确保在对比模式切换时，版本树的选中状态正确
+  useEffect(() => {
+    if (compareMode && compareState.sourceVersionId) {
+      // 进入对比模式时，确保版本树选中源版本（当前版本）
+      setSelectedVersionId(compareState.sourceVersionId);
+      if (rendererRef.current) {
+        rendererRef.current.selectNode(compareState.sourceVersionId);
+      }
+    } else if (!compareMode && currentVersionId) {
+      // 退出对比模式时，确保版本树选中当前版本
+      setSelectedVersionId(currentVersionId);
+      if (rendererRef.current) {
+        rendererRef.current.selectNode(currentVersionId);
+      }
+    }
+  }, [compareMode, currentVersionId, compareState.sourceVersionId]);
 
   // 渲染版本树并自动定位到选中的版本
   useEffect(() => {
@@ -173,7 +218,20 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   }, [searchActive, currentIndex, getCurrentMatchId]);
 
   const handleResetView = () => {
-    rendererRef.current?.resetView();
+    if (!rendererRef.current) return;
+    
+    // 重置缩放和平移
+    rendererRef.current.resetView();
+    
+    // 如果有当前版本，定位到canvas正中间
+    if (currentVersionId) {
+      // 使用 setTimeout 确保 resetView 完成后再定位
+      setTimeout(() => {
+        if (rendererRef.current) {
+          rendererRef.current.centerNodeAtPosition(currentVersionId, 0.5, 0.5);
+        }
+      }, 50);
+    }
   };
 
   const handleZoomIn = () => {
@@ -224,7 +282,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-surface-variant" data-testid="version-canvas">
+    <div className="w-full h-full flex flex-col bg-surface-variant" data-testid="version-canvas">
       {/* 顶部控制区域 - 固定高度，不与canvas重叠 */}
       <div className="p-3 space-y-3 bg-surface-variant">
         {/* 搜索栏 - 只在searchVisible为true时显示 */}
@@ -251,8 +309,18 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
             <Button
               variant="outlined"
               size="small"
+              onClick={handleCompare}
+              disabled={!hasProject || !currentVersionId}
+              title={compareMode ? "退出对比模式" : "点击对比进入对比选择模式"}
+              className={compareMode ? "bg-primary-container border-primary" : ""}
+            >
+              {compareMode ? "退出对比" : "对比"}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
               onClick={handleDeleteVersion}
-              className="[&]:text-error [&]:hover:bg-error-container [&]:hover:border-transparent"
+              // className="[&]:text-error/80 [&]:hover:bg-error-container [&]:hover:border-transparent"
               title="删除此版本"
             >
               🗑️ 删除
@@ -273,7 +341,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
         {/* 画布控制按钮 - 浮动在canvas上，但位置固定在右下角 */}
         <div className="absolute bottom-4 right-4 flex gap-2 z-10">
           <Button
-            variant="outlined"
+            variant="canvasControl"
             size="small"
             onClick={handleZoomIn}
             title="放大"
@@ -282,7 +350,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
             🔍+
           </Button>
           <Button
-            variant="outlined"
+            variant="canvasControl"
             size="small"
             onClick={handleZoomOut}
             title="缩小"
@@ -291,7 +359,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
             🔍-
           </Button>
           <Button
-            variant="outlined"
+            variant="canvasControl"
             size="small"
             onClick={handleResetView}
             title="重置视图"

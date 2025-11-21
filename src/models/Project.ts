@@ -1,6 +1,6 @@
 export interface Project {
   id: string;
-  folderId: string;
+  folderId: string | null;
   name: string;
   createdAt: number;
   updatedAt: number;

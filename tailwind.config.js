@@ -14,8 +14,8 @@ export default {
           onContainer: '#2b3a00',
         },
         secondary: {
-          DEFAULT: '#76a866', // 更深的绿色
-          container: '#b8e3a9',
+          DEFAULT: '#5c7e50', // 更深的绿色
+          container: '#5c7e50',
           onSecondary: '#0f2400',
           onContainer: '#1a3a0f',
         },

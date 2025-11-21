@@ -17,7 +17,7 @@ export async function validateDataIntegrity(): Promise<string[]> {
     const folderIds = new Set((await db.folders.toArray()).map((f) => f.id));
 
     for (const project of projects) {
-      if (!folderIds.has(project.folderId)) {
+      if (project.folderId && !folderIds.has(project.folderId)) {
         errors.push(`Project ${project.id} 引用了不存在的 Folder ${project.folderId}`);
       }
     }

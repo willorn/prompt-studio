@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'filled' | 'outlined' | 'text';
+  variant?: 'filled' | 'outlined' | 'text' | 'canvasControl';
   size?: 'small' | 'medium' | 'large';
   children: React.ReactNode;
 }
@@ -18,10 +18,11 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     filled:
-      'bg-primary text-onPrimary hover:bg-primary/90 hover:shadow-m3-1 active:shadow-none font-semibold',
+      'bg-primary text-primary-onPrimary/80 hover:bg-primary/90 hover:shadow-m3-1 active:shadow-none font-semibold',
     outlined:
-      'border-2 border-primary text-primary hover:bg-primary-container hover:border-primary font-semibold',
+      'border-2 border-primary text-primary-onPrimary/80 hover:bg-primary-container hover:border-primary font-semibold',
     text: 'text-primary hover:bg-primary-container font-semibold',
+    canvasControl: 'border-2 border-secondary text-secondary-onSecondary/80 hover:bg-secondary-container hover:border-secondary font-semibold',
   };
 
   const sizeClasses = {

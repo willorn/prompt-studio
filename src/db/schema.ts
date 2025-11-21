@@ -24,6 +24,15 @@ export class PromptStudioDB extends Dexie {
       snippets: 'id, name, createdAt',
       attachments: 'id, versionId',
     });
+
+    // 版本2：添加版本名称支持
+    this.version(2).stores({
+      folders: 'id, parentId, createdAt',
+      projects: 'id, folderId, updatedAt, createdAt',
+      versions: 'id, projectId, parentId, contentHash, updatedAt, createdAt, name',
+      snippets: 'id, name, createdAt',
+      attachments: 'id, versionId',
+    });
   }
 }
 

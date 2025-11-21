@@ -89,30 +89,80 @@ export function buildVersionTree(versions: Version[]): VersionTreeNode[] {
 }
 
 /**
- * 计算树形布局（简单版 Reingold-Tilford 算法）
+ * 计算树形布局 - 改进的 Reingold-Tilford 算法
+ * 根据子树的实际宽度计算节点位置，避免重叠
+ * 
+ * @param root 根节点
+ * @param nodeWidth 单个节点的宽度
+ * @param nodeHeight 单个节点的高度
+ * @param horizontalSpacing 节点之间的水平间距
+ * @param verticalSpacing 层级之间的垂直间距
  */
 export function calculateTreeLayout(
   root: VersionTreeNode,
-  x = 0,
-  y = 0,
-  levelHeight = 150,
-  siblingWidth = 220
+  nodeWidth = 200,
+  nodeHeight = 80,
+  horizontalSpacing = 40,
+  verticalSpacing = 100
 ): VersionTreeNode {
-  root.x = x;
-  root.y = y;
+  // 第一步：后序遍历，计算每个子树的宽度
+  function calculateSubtreeWidth(node: VersionTreeNode): number {
+    if (node.children.length === 0) {
+      // 叶子节点，宽度就是节点本身的宽度
+      return nodeWidth;
+    }
 
-  if (root.children.length === 0) {
-    return root;
+    // 递归计算所有子节点的宽度
+    const childrenWidths = node.children.map(child => calculateSubtreeWidth(child));
+    
+    // 子树总宽度 = 所有子节点宽度之和 + 子节点之间的间距
+    const totalWidth = childrenWidths.reduce((sum, w) => sum + w, 0) + 
+                       (node.children.length - 1) * horizontalSpacing;
+    
+    // 返回当前节点宽度和子树总宽度中的较大值
+    return Math.max(nodeWidth, totalWidth);
   }
 
-  // 递归计算子节点
-  const childY = y + levelHeight;
-  let currentX = x - ((root.children.length - 1) * siblingWidth) / 2;
+  // 第二步：前序遍历，根据子树宽度设置节点位置
+  function layoutNode(
+    node: VersionTreeNode, 
+    x: number, 
+    y: number, 
+    subtreeWidth: number
+  ): void {
+    // 节点位置 = 子树宽度的中心
+    node.x = x + (subtreeWidth - nodeWidth) / 2;
+    node.y = y;
 
-  for (const child of root.children) {
-    calculateTreeLayout(child, currentX, childY, levelHeight, siblingWidth);
-    currentX += siblingWidth;
+    if (node.children.length === 0) {
+      return;
+    }
+
+    // 计算所有子节点的宽度
+    const childrenWidths = node.children.map(child => calculateSubtreeWidth(child));
+    const totalChildrenWidth = childrenWidths.reduce((sum, w) => sum + w, 0) + 
+                               (node.children.length - 1) * horizontalSpacing;
+
+    // 子树起始 X 位置（让子树在父节点下方居中）
+    let childX = x + (subtreeWidth - totalChildrenWidth) / 2;
+    const childY = y + nodeHeight + verticalSpacing;
+
+    // 递归布局每个子节点
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      const childWidth = childrenWidths[i];
+      
+      layoutNode(child, childX, childY, childWidth);
+      
+      childX += childWidth + horizontalSpacing;
+    }
   }
+
+  // 计算根节点的子树宽度
+  const rootSubtreeWidth = calculateSubtreeWidth(root);
+  
+  // 从 (0, 0) 开始布局
+  layoutNode(root, 0, 0, rootSubtreeWidth);
 
   return root;
 }
@@ -148,4 +198,17 @@ export function findNode<T extends { id: string }>(
     }
   }
   return null;
+}
+
+/**
+ * 按名称升序排序
+ * 支持自然排序（例如：proj-1, proj-2, proj-10）
+ */
+export function sortByName<T extends { name: string }>(items: T[]): T[] {
+  return items.sort((a, b) => {
+    return a.name.localeCompare(b.name, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  });
 }

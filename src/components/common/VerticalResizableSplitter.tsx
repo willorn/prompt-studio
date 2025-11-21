@@ -31,7 +31,7 @@ interface VerticalResizableSplitterProps {
  * 用于调整上下两个面板的高度比例
  */
 export const VerticalResizableSplitter: React.FC<VerticalResizableSplitterProps> = ({
-  ratio,
+  ratio: _ratio,
   onRatioChange,
   onDragStart,
   onDragEnd,

@@ -23,12 +23,6 @@ export interface CompareModalProps {
   
   /** 可选:自定义标题 */
   title?: string;
-  
-  /** 可用于对比的版本列表 */
-  availableVersions?: Version[];
-  
-  /** 选择目标版本的回调 */
-  onSelectTarget?: (versionId: string) => void;
 }
 
 export function CompareModal({
@@ -37,8 +31,6 @@ export function CompareModal({
   targetVersion,
   onClose,
   title = '版本对比',
-  availableVersions = [],
-  onSelectTarget,
 }: CompareModalProps) {
   const mergeViewRef = useRef<MergeView | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -144,72 +136,35 @@ export function CompareModal({
               </div>
             </div>
           )}
-
-          {/* 目标版本选择器 */}
-          {sourceVersion && !targetVersion && availableVersions.length > 0 && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                选择要对比的版本:
-              </label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onChange={(e) => onSelectTarget?.(e.target.value)}
-                defaultValue=""
-              >
-                <option value="" disabled>请选择版本...</option>
-                {availableVersions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    版本 {v.id.slice(0, 8)} - {formatDate(v.createdAt)}
-                  </option>
-                ))}
-              </select>
+          
+          {/* 对比信息 */}
+          {sourceVersion && targetVersion && (
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-medium text-gray-900">
+                  {sourceVersion.name || `版本 ${sourceVersion.id.slice(0, 8)}`}
+                </h3>
+                <div className="text-xs text-gray-600 mt-1">
+                  <div>创建于: {formatDate(sourceVersion.createdAt)}</div>
+                  <div>更新于: {formatDate(sourceVersion.updatedAt)}</div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">
+                  {targetVersion.name || `版本 ${targetVersion.id.slice(0, 8)}`}
+                </h3>
+                <div className="text-xs text-gray-600 mt-1">
+                  <div>创建于: {formatDate(targetVersion.createdAt)}</div>
+                  <div>更新于: {formatDate(targetVersion.updatedAt)}</div>
+                </div>
+              </div>
             </div>
           )}
         </header>
 
-        {/* Diff区域 */}
-        <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-          {/* 左侧面板 */}
-          <div className="border-r border-gray-200 flex flex-col">
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">
-                版本 {sourceVersion?.id.slice(0, 8)}
-              </h3>
-              <span className="text-xs text-gray-600">
-                创建于 {sourceVersion && formatDate(sourceVersion.createdAt)}
-              </span>
-            </div>
-            <div className="flex-1 overflow-auto">
-              {sourceVersion ? (
-                <div ref={(el) => el && containerRef.current === null && (containerRef.current = el)} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  请选择源版本
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 右侧面板 */}
-          <div className="flex flex-col">
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">
-                版本 {targetVersion?.id.slice(0, 8)}
-              </h3>
-              <span className="text-xs text-gray-600">
-                创建于 {targetVersion && formatDate(targetVersion.createdAt)}
-              </span>
-            </div>
-            <div className="flex-1 overflow-auto">
-              {targetVersion ? (
-                <div ref={containerRef} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  请选择要对比的版本
-                </div>
-              )}
-            </div>
-          </div>
+        {/* CodeMirror Diff视图容器 - 占据剩余空间 */}
+        <div className="flex-1 overflow-hidden">
+          <div ref={containerRef} className="w-full h-full" />
         </div>
       </div>
     </div>
