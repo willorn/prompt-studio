@@ -1,7 +1,7 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import CodeMirror, { EditorView, keymap } from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
-import { search, openSearchPanel, closeSearchPanel } from '@codemirror/search';
+import { search, openSearchPanel } from '@codemirror/search';
 import { Prec } from '@codemirror/state';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -346,13 +346,6 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
         return true;
       },
     },
-    {
-      key: 'Escape',
-      run: (view) => {
-        closeSearchPanel(view);
-        return true;
-      },
-    },
   ]));
 
   return (
@@ -379,7 +372,7 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
           crosshairCursor: true,
           highlightSelectionMatches: true,
           closeBracketsKeymap: true,
-          searchKeymap: false, // 禁用默认搜索键，使用自定义的
+          searchKeymap: true, // 禁用默认搜索键，使用自定义的
           foldKeymap: true,
           completionKeymap: true,
           lintKeymap: true,

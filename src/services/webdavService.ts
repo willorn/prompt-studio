@@ -84,6 +84,23 @@ export class WebDAVService {
         }
       }
 
+      // 导出 localStorage 中的设置数据
+      const settings: Record<string, any> = {};
+      // 导出 WebDAV 配置
+      const webdavConfig = localStorage.getItem('webdav_config');
+      if (webdavConfig) {
+        settings['webdav_config'] = JSON.parse(webdavConfig);
+      }
+      // 导出布局设置
+      const canvasRatio = localStorage.getItem('layout.canvasPanelWidthRatio');
+      const editorHeightRatio = localStorage.getItem('layout.editorHeightRatio');
+      const sidebarCollapsed = localStorage.getItem('layout.sidebarCollapsed');
+      if (canvasRatio) settings['layout.canvasPanelWidthRatio'] = JSON.parse(canvasRatio);
+      if (editorHeightRatio) settings['layout.editorHeightRatio'] = JSON.parse(editorHeightRatio);
+      if (sidebarCollapsed) settings['layout.sidebarCollapsed'] = JSON.parse(sidebarCollapsed);
+      
+      zip.file('settings.json', JSON.stringify(settings, null, 2));
+
       zip.file(
         'metadata.json',
         JSON.stringify(
@@ -183,6 +200,7 @@ export class WebDAVService {
       const versionsFile = zip.file('versions.json');
       const snippetsFile = zip.file('snippets.json');
       const attachmentsFile = zip.file('attachments.json');
+      const settingsFile = zip.file('settings.json');
 
       // 4. 清空现有数据（可选，根据需求决定是否合并）
       const shouldClear = confirm('是否清空现有数据后还原？（取消则合并数据）');
@@ -238,6 +256,26 @@ export class WebDAVService {
 
           const validAttachments = attachments.filter((att) => att !== null);
           await db.attachments.bulkPut(validAttachments as any[]);
+        }
+      }
+
+      // 6. 导入设置数据
+      if (settingsFile) {
+        const settings = JSON.parse(await settingsFile.async('text'));
+        // 恢复 WebDAV 配置（除了当前使用的配置）
+        if (settings['webdav_config'] && shouldClear) {
+          // 保留当前 WebDAV 配置，不覆盖
+          // localStorage.setItem('webdav_config', JSON.stringify(settings['webdav_config']));
+        }
+        // 恢复布局设置
+        if (settings['layout.canvasPanelWidthRatio'] !== undefined) {
+          localStorage.setItem('layout.canvasPanelWidthRatio', JSON.stringify(settings['layout.canvasPanelWidthRatio']));
+        }
+        if (settings['layout.editorHeightRatio'] !== undefined) {
+          localStorage.setItem('layout.editorHeightRatio', JSON.stringify(settings['layout.editorHeightRatio']));
+        }
+        if (settings['layout.sidebarCollapsed'] !== undefined) {
+          localStorage.setItem('layout.sidebarCollapsed', JSON.stringify(settings['layout.sidebarCollapsed']));
         }
       }
 

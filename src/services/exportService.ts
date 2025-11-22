@@ -81,6 +81,23 @@ export class ExportService {
       }
     }
 
+    // 导出 localStorage 中的设置数据
+    const settings: Record<string, any> = {};
+    // 导出 WebDAV 配置
+    const webdavConfig = localStorage.getItem('webdav_config');
+    if (webdavConfig) {
+      settings['webdav_config'] = JSON.parse(webdavConfig);
+    }
+    // 导出布局设置
+    const canvasRatio = localStorage.getItem('layout.canvasPanelWidthRatio');
+    const editorHeightRatio = localStorage.getItem('layout.editorHeightRatio');
+    const sidebarCollapsed = localStorage.getItem('layout.sidebarCollapsed');
+    if (canvasRatio) settings['layout.canvasPanelWidthRatio'] = JSON.parse(canvasRatio);
+    if (editorHeightRatio) settings['layout.editorHeightRatio'] = JSON.parse(editorHeightRatio);
+    if (sidebarCollapsed) settings['layout.sidebarCollapsed'] = JSON.parse(sidebarCollapsed);
+    
+    zip.file('settings.json', JSON.stringify(settings, null, 2));
+
     zip.file('metadata.json', JSON.stringify({
       exportedAt: new Date().toISOString(),
       version: '1.0',
@@ -162,6 +179,7 @@ export class ExportService {
     const versionsFile = zip.file('versions.json');
     const snippetsFile = zip.file('snippets.json');
     const attachmentsFile = zip.file('attachments.json');
+    const settingsFile = zip.file('settings.json');
 
     // 处理项目数据
     if (projectsFile) {
@@ -231,6 +249,25 @@ export class ExportService {
       );
       
       await db.attachments.bulkPut(processedAttachments);
+    }
+
+    // 处理设置数据
+    if (settingsFile) {
+      const settings = JSON.parse(await settingsFile.async('text'));
+      // 恢复 WebDAV 配置
+      if (settings['webdav_config']) {
+        localStorage.setItem('webdav_config', JSON.stringify(settings['webdav_config']));
+      }
+      // 恢复布局设置
+      if (settings['layout.canvasPanelWidthRatio'] !== undefined) {
+        localStorage.setItem('layout.canvasPanelWidthRatio', JSON.stringify(settings['layout.canvasPanelWidthRatio']));
+      }
+      if (settings['layout.editorHeightRatio'] !== undefined) {
+        localStorage.setItem('layout.editorHeightRatio', JSON.stringify(settings['layout.editorHeightRatio']));
+      }
+      if (settings['layout.sidebarCollapsed'] !== undefined) {
+        localStorage.setItem('layout.sidebarCollapsed', JSON.stringify(settings['layout.sidebarCollapsed']));
+      }
     }
   }
 }

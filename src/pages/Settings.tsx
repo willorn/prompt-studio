@@ -32,6 +32,13 @@ const Settings: React.FC = () => {
     }
   }, []);
 
+  // 自动保存 WebDAV 配置到 localStorage
+  useEffect(() => {
+    if (webdavConfig.url || webdavConfig.username || webdavConfig.password) {
+      localStorage.setItem('webdav_config', JSON.stringify(webdavConfig));
+    }
+  }, [webdavConfig]);
+
   const handleTestConnection = async () => {
     setTesting(true);
     try {
@@ -40,8 +47,6 @@ const Settings: React.FC = () => {
       setIsConnected(result);
       if (result) {
         alert('连接成功！');
-        // 保存配置
-        localStorage.setItem('webdav_config', JSON.stringify(webdavConfig));
         loadBackups();
       } else {
         alert('连接失败，请检查配置');
@@ -146,7 +151,7 @@ ${remotePath}`)) {
       await loadFolders();
       await loadProjects();
       
-      alert('导入成功！返回主页后数据将自动刷新。');
+      alert('导入成功！');
     } catch (error) {
       alert(`导入失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }

@@ -43,8 +43,15 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
-  sidebarCollapsed: false,
-  toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  sidebarCollapsed: layoutManager.loadPreference().sidebarCollapsed ?? false,
+  toggleSidebar: () => {
+    set((state) => {
+      const newCollapsed = !state.sidebarCollapsed;
+      // 同步保存到 localStorage
+      layoutManager.saveSidebarCollapsed(newCollapsed);
+      return { sidebarCollapsed: newCollapsed };
+    });
+  },
 
   expandedFolders: [],
   toggleFolder: (folderId) =>
@@ -101,16 +108,18 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
 
   loadLayoutPreference: () => {
-    set({ layoutPreference: layoutManager.loadPreference() });
+    const preference = layoutManager.loadPreference();
+    set({ 
+      layoutPreference: preference,
+      sidebarCollapsed: preference.sidebarCollapsed ?? false,
+    });
   },
 
   saveLayoutPreference: () => {
-    const { layoutPreference } = get();
+    const { layoutPreference, sidebarCollapsed } = get();
     layoutManager.saveCanvasRatio(layoutPreference.canvasPanelWidthRatio);
     layoutManager.saveEditorHeightRatio(layoutPreference.editorHeightRatio);
-    if (layoutPreference.sidebarCollapsed !== undefined) {
-      layoutManager.saveSidebarCollapsed(layoutPreference.sidebarCollapsed);
-    }
+    layoutManager.saveSidebarCollapsed(sidebarCollapsed);
   },
 
   diffModalOpen: false,
