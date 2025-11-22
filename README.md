@@ -1,5 +1,7 @@
 # Prompt Studio
 
+**🌐 直接使用 | Use it here：[https://prompt-studio.joeylearnstocode.deno.net/](https://prompt-studio.joeylearnstocode.deno.net/)**
+
 [English Version](#english-version) | [中文版本](#中文版本)
 
 ---
@@ -48,6 +50,17 @@ Prompt Studio 是一个**本地优先**的 AI 提示词版本管理与编辑工�
 - **Material Design 3**：遵循最新设计规范，清新的视觉风格
 - **响应式布局**：自适应桌面、平板、移动端，随时随地工作
 - **无障碍支持**：完整的键盘导航和屏幕阅读器支持，符合 WCAG 2.1 AA 标准
+
+### 📸 应用预览
+
+#### 主界面
+![主界面](./assets/MAIN%20UI.png)
+
+#### 差异对比
+![差异对比](./assets/DIFF%20UI.png)
+
+#### 设置界面
+![设置界面](./assets/SETTINGS%20UI.png)
 
 ### 🚀 快速开始
 
@@ -158,6 +171,17 @@ We believe:
 - **Material Design 3**: Follow the latest design specifications with a fresh visual style
 - **Responsive Layout**: Adaptive to desktop, tablet, and mobile devices for work anywhere
 - **Accessibility Support**: Full keyboard navigation and screen reader support, compliant with WCAG 2.1 AA standards
+
+### 📸 Application Preview
+
+#### Main Interface
+![Main Interface](./assets/MAIN%20UI.png)
+
+#### Diff View
+![Diff View](./assets/DIFF%20UI.png)
+
+#### Settings
+![Settings](./assets/SETTINGS%20UI.png)
 
 ### 🚀 Quick Start
 
