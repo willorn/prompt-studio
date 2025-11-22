@@ -23,6 +23,15 @@ export function createDiffEditorExtensions(): Extension[] {
     EditorState.readOnly.of(true),
     EditorView.editable.of(false),
     EditorView.lineWrapping,
+    // 确保编辑器能够正确撑开并滚动
+    EditorView.theme({
+      '&': {
+        height: '100%',
+      },
+      '.cm-scroller': {
+        overflow: 'auto',
+      },
+    }),
   ];
 }
 

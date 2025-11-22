@@ -372,7 +372,7 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
           crosshairCursor: true,
           highlightSelectionMatches: true,
           closeBracketsKeymap: true,
-          searchKeymap: true, // 禁用默认搜索键，使用自定义的
+          searchKeymap: true,
           foldKeymap: true,
           completionKeymap: true,
           lintKeymap: true,

@@ -162,9 +162,17 @@ export function CompareModal({
           )}
         </header>
 
-        {/* CodeMirror Diff视图容器 - 占据剩余空间 */}
-        <div className="flex-1 overflow-hidden">
-          <div ref={containerRef} className="w-full h-full" />
+        {/* CodeMirror Diff视图容器 - 占据剩余空间,允许内部滚动 */}
+        <div className="flex-1 min-h-0">
+          <div 
+            ref={containerRef} 
+            className="w-full h-full"
+            style={{ 
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          />
         </div>
       </div>
     </div>

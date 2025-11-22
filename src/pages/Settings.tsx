@@ -22,9 +22,6 @@ const Settings: React.FC = () => {
   >([]);
   const [loading, setLoading] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [restoreBackups, setRestoreBackups] = useState<
-    Array<{ name: string; path: string; size: number; lastMod: string }>
-  >([]);
 
   useEffect(() => {
     // 从 localStorage 加载配置
@@ -100,7 +97,7 @@ const Settings: React.FC = () => {
     setLoading(true);
     try {
       const list = await webdavService.listBackups();
-      setRestoreBackups(list);
+      setBackups(list);
       setShowRestoreModal(true);
     } catch (error) {
       alert(`获取备份列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -137,7 +134,7 @@ const Settings: React.FC = () => {
       alert('删除成功！');
       // 更新备份列表和模态框中的备份列表
       loadBackups();
-      setRestoreBackups(prev => prev.filter(b => b.path !== remotePath));
+      setBackups(prev => prev.filter(b => b.path !== remotePath));
     } catch (error) {
       alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
@@ -308,13 +305,13 @@ const Settings: React.FC = () => {
         size="large"
       >
         <div className="space-y-4">
-          {restoreBackups.length === 0 ? (
+          {backups.length === 0 ? (
             <p className="text-center text-surface-onVariant py-8">
               暂无可用的备份文件
             </p>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {restoreBackups.map((backup) => (
+                {backups.map((backup) => (
                 <div
                   key={backup.path}
                   className="flex items-center justify-between p-4 bg-surface-containerHighest rounded-m3-medium hover:bg-surface-containerHigh transition-colors"
