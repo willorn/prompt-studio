@@ -9,6 +9,7 @@ interface AttachmentGalleryProps {
   attachments: Attachment[];
   onAttachmentsChange: () => void;
   readonly?: boolean;
+  extraCard?: React.ReactNode; // 额外的卡片，会显示在上传区后面
 }
 
 export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
@@ -16,6 +17,7 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   attachments,
   onAttachmentsChange,
   readonly = false,
+  extraCard,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [previewImage, setPreviewImage] = useState<{
@@ -168,6 +170,9 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
             </div>
           </div>
         )}
+        
+        {/* 额外的卡片（如版本信息卡片） */}
+        {extraCard}
 
         {/* 附件列表 */}
         <AnimatePresence>

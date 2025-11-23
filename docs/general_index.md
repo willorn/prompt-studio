@@ -57,6 +57,7 @@ src/
 |   |   |-- AttachmentGallery.tsx: 附件画廊组件，支持图片/视频上传、预览、下载
 |   |   |-- CompareModal.tsx: 版本比较模态框组件
 |   |   |-- VersionCard.tsx: 版本卡片组件
+|   |   |-- VersionMetaCard.tsx: 版本元数据（评分、备注）卡片组件
 |-- contexts/: React上下文目录
 |-- db/: 数据库相关
 |   |-- migrations.ts: 数据库迁移脚本
@@ -69,7 +70,7 @@ src/
 |   |-- Folder.ts: 文件夹数据模型
 |   |-- Project.ts: 项目数据模型
 |   |-- Snippet.ts: 代码片段数据模型
-|   |-- Version.ts: 版本数据模型（normalizedContent 字段为运行时计算，不保存到数据库）
+|   |-- Version.ts: 版本数据模型
 |-- pages/: 页面组件
 |   |-- MainView.tsx: 主视图页面
 |   |-- Settings.tsx: 设置页面

@@ -33,6 +33,15 @@ export class PromptStudioDB extends Dexie {
       snippets: 'id, name, createdAt',
       attachments: 'id, versionId',
     });
+
+    // 版本3：添加版本备注支持（score字段已在Version接口中定义，无需索引）
+    this.version(3).stores({
+      folders: 'id, parentId, createdAt',
+      projects: 'id, folderId, updatedAt, createdAt',
+      versions: 'id, projectId, parentId, contentHash, updatedAt, createdAt, name',
+      snippets: 'id, name, createdAt',
+      attachments: 'id, versionId',
+    });
   }
 }
 

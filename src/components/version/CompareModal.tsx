@@ -144,18 +144,36 @@ export function CompareModal({
                 <h3 className="font-medium text-gray-900">
                   {sourceVersion.name || `版本 ${sourceVersion.id.slice(0, 8)}`}
                 </h3>
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs text-gray-600 mt-1 space-y-1">
                   <div>创建于: {formatDate(sourceVersion.createdAt)}</div>
                   <div>更新于: {formatDate(sourceVersion.updatedAt)}</div>
+                  {sourceVersion.score !== undefined && sourceVersion.score > 0 && (
+                    <div>评分: ⭐ {sourceVersion.score}/10</div>
+                  )}
+                  {sourceVersion.notes && (
+                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                      <div className="font-medium mb-1">备注:</div>
+                      <div className="text-gray-700 whitespace-pre-wrap line-clamp-2">{sourceVersion.notes}</div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">
                   {targetVersion.name || `版本 ${targetVersion.id.slice(0, 8)}`}
                 </h3>
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs text-gray-600 mt-1 space-y-1">
                   <div>创建于: {formatDate(targetVersion.createdAt)}</div>
                   <div>更新于: {formatDate(targetVersion.updatedAt)}</div>
+                  {targetVersion.score !== undefined && targetVersion.score > 0 && (
+                    <div>评分: ⭐ {targetVersion.score}/10</div>
+                  )}
+                  {targetVersion.notes && (
+                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                      <div className="font-medium mb-1">备注:</div>
+                      <div className="text-gray-700 whitespace-pre-wrap line-clamp-2">{targetVersion.notes}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

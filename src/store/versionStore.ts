@@ -28,6 +28,7 @@ interface VersionState {
   updateVersionName: (id: string, name: string) => Promise<void>;
   deleteVersion: (id: string) => Promise<void>;
   updateVersionScore: (id: string, score: number) => Promise<void>;
+  updateVersionNotes: (id: string, notes: string) => Promise<void>;
   setCurrentVersion: (id: string | null) => void;
   checkDuplicate: (content: string) => Promise<Version | null>;
   openCompare: (sourceVersionId: string) => void;
@@ -193,6 +194,13 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     await db.versions.update(id, { score });
     set((state) => ({
       versions: state.versions.map((v) => (v.id === id ? { ...v, score } : v)),
+    }));
+  },
+
+  updateVersionNotes: async (id, notes) => {
+    await db.versions.update(id, { notes });
+    set((state) => ({
+      versions: state.versions.map((v) => (v.id === id ? { ...v, notes } : v)),
     }));
   },
 

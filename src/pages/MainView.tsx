@@ -9,6 +9,7 @@ import PromptEditor, { PromptEditorRef } from '@/components/editor/PromptEditor'
 import EditorToolbar from '@/components/editor/EditorToolbar';
 import VersionCanvas from '@/components/canvas/VersionCanvas';
 import { AttachmentGallery } from '@/components/version/AttachmentGallery';
+import { VersionMetaCard } from '@/components/version/VersionMetaCard';
 import { CompareModal } from '@/components/version/CompareModal';
 
 import { DuplicateDialog } from '@/components/common/DuplicateDialog';
@@ -337,6 +338,14 @@ const MainView: React.FC = () => {
                       attachments={attachments}
                       onAttachmentsChange={() => loadAttachments(currentVersionId)}
                       readonly={false}
+                      extraCard={
+                        <VersionMetaCard
+                          versionId={currentVersionId}
+                          score={versions.find(v => v.id === currentVersionId)?.score}
+                          notes={versions.find(v => v.id === currentVersionId)?.notes}
+                          readonly={false}
+                        />
+                      }
                     />
                   </div>
                 )}
