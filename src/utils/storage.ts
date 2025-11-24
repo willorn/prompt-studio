@@ -57,8 +57,10 @@ export const storage = {
  * localStorage 键常量
  */
 export const STORAGE_KEYS = {
-  CANVAS_RATIO: 'layout.canvasPanelWidthRatio',
-  EDITOR_HEIGHT_RATIO: 'layout.editorHeightRatio',
-  SIDEBAR_COLLAPSED: 'layout.sidebarCollapsed',
-  SEARCH_LAST_QUERY: 'search.lastQuery',
+  CANVAS_RATIO: 'promptStudio.layout.canvasPanelWidthRatio',
+  EDITOR_HEIGHT_RATIO: 'promptStudio.layout.editorHeightRatio',
+  SIDEBAR_COLLAPSED: 'promptStudio.layout.sidebarCollapsed',
+  SEARCH_LAST_QUERY: 'promptStudio.search.lastQuery',
+  FIRST_OPEN_TIME: 'promptStudio.app.firstOpenTime',
+  WEBDAV_CONFIG: 'promptStudio.settings.webdav_config',
 } as const;

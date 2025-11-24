@@ -6,6 +6,7 @@ import { useProjectStore } from '@/store/projectStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Modal } from '@/components/common/Modal';
+import { storage, STORAGE_KEYS } from '@/utils/storage';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -25,9 +26,8 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     // 从 localStorage 加载配置
-    const savedConfig = localStorage.getItem('webdav_config');
-    if (savedConfig) {
-      const config = JSON.parse(savedConfig);
+    const config = storage.get<WebDAVConfig | null>(STORAGE_KEYS.WEBDAV_CONFIG, null);
+    if (config) {
       setWebdavConfig(config);
       webdavService.configure(config);
       loadBackups();
@@ -37,7 +37,7 @@ const Settings: React.FC = () => {
   // 自动保存 WebDAV 配置到 localStorage
   useEffect(() => {
     if (webdavConfig.url || webdavConfig.username || webdavConfig.password) {
-      localStorage.setItem('webdav_config', JSON.stringify(webdavConfig));
+      storage.set(STORAGE_KEYS.WEBDAV_CONFIG, webdavConfig);
     }
   }, [webdavConfig]);
 

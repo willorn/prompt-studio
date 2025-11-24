@@ -34,6 +34,7 @@ src/
 |-- main.tsx: 应用程序入口文件，初始化数据库并渲染App组件
 |-- router.tsx: 应用程序路由配置，定义页面路径
 |-- components/: React组件目录
+|   |-- AppInitializer.tsx: 应用初始化组件，负责初始化示例数据并自动加载到UI
 |   |-- canvas/: 画布相关组件
 |   |   |-- SearchBar.tsx: 画布搜索栏组件，提供版本搜索功能
 |   |   |-- VersionCanvas.tsx: 版本画布组件，显示版本关系的可视化
@@ -82,6 +83,7 @@ src/
 |   |-- diffService.ts: 差异计算服务
 |   |-- exportService.ts: 导入导出功能服务（支持 JSON 和 ZIP 格式，导出时自动清理运行时字段）
 |   |-- folderManager.ts: 文件夹管理服务
+|   |-- initializeSampleData.ts: 示例数据初始化服务，为全新用户创建示例项目
 |   |-- layoutManager.ts: 布局管理服务，管理画布宽度和编辑器高度比例
 |   |-- projectManager.ts: 项目管理服务
 |   |-- searchService.ts: 搜索功能服务

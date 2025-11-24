@@ -5,6 +5,7 @@
 import { db } from '@/db/schema';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { storage, STORAGE_KEYS } from '@/utils/storage';
 
 export class ExportService {
 /**
@@ -84,17 +85,17 @@ export class ExportService {
     // 导出 localStorage 中的设置数据
     const settings: Record<string, any> = {};
     // 导出 WebDAV 配置
-    const webdavConfig = localStorage.getItem('webdav_config');
+    const webdavConfig = storage.get(STORAGE_KEYS.WEBDAV_CONFIG, null);
     if (webdavConfig) {
-      settings['webdav_config'] = JSON.parse(webdavConfig);
+      settings[STORAGE_KEYS.WEBDAV_CONFIG] = webdavConfig;
     }
     // 导出布局设置
-    const canvasRatio = localStorage.getItem('layout.canvasPanelWidthRatio');
-    const editorHeightRatio = localStorage.getItem('layout.editorHeightRatio');
-    const sidebarCollapsed = localStorage.getItem('layout.sidebarCollapsed');
-    if (canvasRatio) settings['layout.canvasPanelWidthRatio'] = JSON.parse(canvasRatio);
-    if (editorHeightRatio) settings['layout.editorHeightRatio'] = JSON.parse(editorHeightRatio);
-    if (sidebarCollapsed) settings['layout.sidebarCollapsed'] = JSON.parse(sidebarCollapsed);
+    const canvasRatio = storage.get(STORAGE_KEYS.CANVAS_RATIO, null);
+    const editorHeightRatio = storage.get(STORAGE_KEYS.EDITOR_HEIGHT_RATIO, null);
+    const sidebarCollapsed = storage.get(STORAGE_KEYS.SIDEBAR_COLLAPSED, null);
+    if (canvasRatio !== null) settings[STORAGE_KEYS.CANVAS_RATIO] = canvasRatio;
+    if (editorHeightRatio !== null) settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] = editorHeightRatio;
+    if (sidebarCollapsed !== null) settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] = sidebarCollapsed;
     
     zip.file('settings.json', JSON.stringify(settings, null, 2));
 
@@ -255,18 +256,18 @@ export class ExportService {
     if (settingsFile) {
       const settings = JSON.parse(await settingsFile.async('text'));
       // 恢复 WebDAV 配置
-      if (settings['webdav_config']) {
-        localStorage.setItem('webdav_config', JSON.stringify(settings['webdav_config']));
+      if (settings[STORAGE_KEYS.WEBDAV_CONFIG]) {
+        storage.set(STORAGE_KEYS.WEBDAV_CONFIG, settings[STORAGE_KEYS.WEBDAV_CONFIG]);
       }
       // 恢复布局设置
-      if (settings['layout.canvasPanelWidthRatio'] !== undefined) {
-        localStorage.setItem('layout.canvasPanelWidthRatio', JSON.stringify(settings['layout.canvasPanelWidthRatio']));
+      if (settings[STORAGE_KEYS.CANVAS_RATIO] !== undefined) {
+        storage.set(STORAGE_KEYS.CANVAS_RATIO, settings[STORAGE_KEYS.CANVAS_RATIO]);
       }
-      if (settings['layout.editorHeightRatio'] !== undefined) {
-        localStorage.setItem('layout.editorHeightRatio', JSON.stringify(settings['layout.editorHeightRatio']));
+      if (settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] !== undefined) {
+        storage.set(STORAGE_KEYS.EDITOR_HEIGHT_RATIO, settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO]);
       }
-      if (settings['layout.sidebarCollapsed'] !== undefined) {
-        localStorage.setItem('layout.sidebarCollapsed', JSON.stringify(settings['layout.sidebarCollapsed']));
+      if (settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] !== undefined) {
+        storage.set(STORAGE_KEYS.SIDEBAR_COLLAPSED, settings[STORAGE_KEYS.SIDEBAR_COLLAPSED]);
       }
     }
   }

@@ -30,7 +30,8 @@ export const versionManager = {
     projectId: string,
     content: string,
     parentId: string | null,
-    score?: number
+    score?: number,
+    name?: string
   ): Promise<Version> {
     const contentHash = computeContentHash(content);
 
@@ -43,6 +44,7 @@ export const versionManager = {
       content,
       contentHash,
       score,
+      name,
     };
 
     await db.transaction('rw', db.versions, db.projects, async () => {
