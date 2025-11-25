@@ -288,10 +288,10 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   return (
     <div className="w-full h-full flex flex-col bg-surface-variant" data-testid="version-canvas">
       {/* 顶部控制区域 - 固定高度，不与canvas重叠 */}
-      <div className="p-3 space-y-3 bg-surface-variant">
+      <div className="px-4 py-3 bg-surface-variant">
         {/* 搜索栏 - 只在searchVisible为true时显示 */}
         {searchVisible && (
-          <div className="max-w-md">
+          <div className="max-w-md mb-3">
             <SearchBar
               ref={searchInputRef}
               query={query}
@@ -308,7 +308,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
 
         {/* 版本操作按钮 */}
         {selectedVersionId && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 h-10 items-center">
             <Button
               variant="outlined"
               size="small"

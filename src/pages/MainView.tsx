@@ -6,7 +6,10 @@ import { attachmentManager } from '@/services/attachmentManager';
 import type { Attachment } from '@/models/Attachment';
 import Sidebar from '@/components/layout/Sidebar';
 import PromptEditor, { PromptEditorRef } from '@/components/editor/PromptEditor';
-import EditorToolbar from '@/components/editor/EditorToolbar';
+import { useUiStore } from '@/store/uiStore';
+import { useTranslation } from '@/i18n/I18nContext';
+import type { Version } from '@/models/Version';
+import { Button } from '@/components/common/Button';
 import VersionCanvas from '@/components/canvas/VersionCanvas';
 import { AttachmentGallery } from '@/components/version/AttachmentGallery';
 import { VersionMetaCard } from '@/components/version/VersionMetaCard';
@@ -16,9 +19,6 @@ import { DuplicateDialog } from '@/components/common/DuplicateDialog';
 import { ResizableSplitter } from '@/components/common/ResizableSplitter';
 import { VerticalResizableSplitter } from '@/components/common/VerticalResizableSplitter';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
-import { useUiStore } from '@/store/uiStore';
-import { useTranslation } from '@/i18n/I18nContext';
-import type { Version } from '@/models/Version';
 
 const MainView: React.FC = () => {
   const navigate = useNavigate();
@@ -250,18 +250,11 @@ const MainView: React.FC = () => {
           className="flex flex-col"
           style={{ width: `${layoutPreference.canvasPanelWidthRatio * 100}%` }}
         >
-          <EditorToolbar
-            onSave={handleSave}
-            onSaveInPlace={handleSaveInPlace}
-            canSaveInPlace={canSaveInPlace}
-            hasProject={!!currentProjectId}
-          />
-
           {/* 版本名称输入框 */}
           {currentProjectId && currentVersionId && (
-            <div className="px-4 py-2 bg-surface-variant border-b border-surface-onVariant/20">
-              <div className="flex items-center gap-2">
-                <label htmlFor="version-name" className="text-sm font-medium text-surface-onVariant">
+            <div className="px-4 py-3 bg-surface-variant border-b border-surface-onVariant/20">
+              <div className="flex items-center gap-2 h-10">
+                <label htmlFor="version-name" className="text-sm font-medium text-surface-onVariant whitespace-nowrap">
                   {t('pages.mainView.versionName')}:
                 </label>
                 <input
@@ -296,8 +289,29 @@ const MainView: React.FC = () => {
                     }
                   }}
                   placeholder={t('pages.mainView.versionNamePlaceholder')}
-                  className="flex-1 px-3 py-1.5 text-sm bg-surface border border-surface-onVariant/30 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  className="flex-1 px-3 py-2 text-sm bg-surface border border-surface-onVariant/30 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                 />
+                
+                {/* 保存按钮 */}
+                <Button
+                  onClick={handleSaveInPlace}
+                  variant="outlined"
+                  size="small"
+                  disabled={!canSaveInPlace || !currentProjectId}
+                  title={`${t('components.toolbar.saveInPlace')} (Ctrl+S / Ctrl+Enter)`}
+                >
+                  {t('components.toolbar.saveInPlace')}
+                </Button>
+
+                <Button
+                  onClick={handleSave}
+                  variant="outlined"
+                  size="small"
+                  disabled={!currentProjectId}
+                  title={`${t('components.toolbar.saveNew')} (Ctrl+Shift+S / Ctrl+Shift+Enter)`}
+                >
+                  {t('components.toolbar.saveNew')}
+                </Button>
               </div>
             </div>
           )}
