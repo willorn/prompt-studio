@@ -13,7 +13,7 @@ interface FolderTreeProps {
 interface TreeItemProps {
   folder: Folder;
   level: number;
-  onContextMenu: (e: React.MouseEvent, folder: Folder) => void;
+  onContextMenu: (e: React.MouseEvent, item: Folder | Project) => void;
   onToggle: (folderId: string) => void;
   expanded: Set<string>;
   onProjectDrop: (projectId: string, folderId: string) => void;
@@ -504,7 +504,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
               key={folder.id}
               folder={folder}
               level={0}
-              onContextMenu={handleFolderContextMenu}
+              onContextMenu={handleItemContextMenu}
               onToggle={handleToggle}
               expanded={expanded}
               onProjectDrop={moveProjectToFolder}
