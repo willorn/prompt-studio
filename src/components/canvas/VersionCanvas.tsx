@@ -260,7 +260,11 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
     if (confirm(t('components.canvas.confirmDelete'))) {
       try {
         await deleteVersion(selectedVersionId);
-        setSelectedVersionId(null);
+        // 不再手动置空 selectedVersionId，因为：
+        // 1. deleteVersion 会更新 store 中的 currentVersionId 为 null
+        // 2. MainView 会检测到 null 并自动选择最新版本
+        // 3. 上面的 useEffect 会监听到 currentVersionId 变化并更新 selectedVersionId
+        // 如果在这里手动置空，会覆盖掉步骤 3 中已经更新的正确值（因为 await 之后的代码最后执行）
       } catch (error) {
         alert(`${t('components.canvas.deleteFailed')}: ${error}`);
       }

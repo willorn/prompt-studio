@@ -1,9 +1,8 @@
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import CodeMirror, { EditorView, keymap } from '@uiw/react-codemirror';
-import { markdown } from '@codemirror/lang-markdown';
-import { search, openSearchPanel } from '@codemirror/search';
-import { Prec } from '@codemirror/state';
+import { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
+import Editor, { Monaco, OnMount, loader } from '@monaco-editor/react';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useI18nStore } from '@/store/i18nStore';
+// import { editor } from 'monaco-editor';
 
 interface PromptEditorProps {
   value: string;
@@ -27,355 +26,126 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
   readOnly = false,
 }, ref) => {
   const { editorFontSize, editorLineHeight } = useSettingsStore();
-  const [view, setView] = useState<EditorView | null>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const currentLocale = useI18nStore((state) => state.currentLocale);
+  const editorRef = useRef<any | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
 
-  // 暴露聚焦方法给父组件
-  useImperativeHandle(ref, () => ({
-    focus: () => {
-      if (view) {
-        view.focus();
-        // 将光标移动到文档末尾
-        const lastLine = view.state.doc.lines;
-        const lastLineLength = view.state.doc.line(lastLine).length;
-        view.dispatch({
-          selection: { 
-            anchor: view.state.doc.line(lastLine).from + lastLineLength,
-            head: view.state.doc.line(lastLine).from + lastLineLength
-          }
-        });
-      }
+  // Configure Monaco loader for i18n
+  loader.config({
+    paths: {
+      // 显式指定 CDN 路径，防止 loader 使用默认的 0.55.1 版本（有问题）
+      vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.51.0/min/vs',
     },
-  }), [view]);
-
-  // M3 主题 - 填满父区域，使用浏览器默认等宽字体
-  const theme = EditorView.theme({
-    '&': {
-      color: '#1b1c18',
-      backgroundColor: '#fdfcf5',
-      fontSize: `${editorFontSize}px`,
-      lineHeight: editorLineHeight.toString(),
-      height: '100%',
-      width: '100%',
-    },
-    '.cm-editor': {
-      height: '100%',
-      width: '100%',
-      fontFamily: 'ui-monospace, monospace',
-    },
-    '.cm-scroller': {
-      overflow: 'auto',
-      height: '100%',
-    },
-    '.cm-content': {
-      caretColor: '#a8c548',
-      padding: '1rem',
-      minHeight: '100%',
-      boxSizing: 'border-box',
-    },
-    '.cm-cursor': {
-      borderLeftColor: '#a8c548',
-    },
-    '.cm-selectionBackground, ::selection': {
-      backgroundColor: '#d9f799 !important',
-    },
-    '.cm-focused .cm-selectionBackground': {
-      backgroundColor: '#d9f799 !important',
-    },
-    '.cm-gutters': {
-      backgroundColor: '#e4e3d6',
-      color: '#2a2b24',
-      border: 'none',
-      fontFamily: 'ui-monospace, monospace',
-    },
-    '.cm-line': {
-      padding: '0 0',
-    },
-    '.cm-lineNumbers': {
-      fontFamily: 'ui-monospace, monospace',
-    },
-    
-    // 搜索高亮效果
-    '.cm-searchMatch': {
-      backgroundColor: 'rgba(168, 197, 72, 0.3)',
-      borderRadius: '2px',
-    },
-    '.cm-searchMatch.cm-searchMatch-selected': {
-      backgroundColor: 'rgba(168, 197, 72, 0.5)',
-    },
-    
-    // 美化原生搜索面板
-    '.cm-panels': {
-      backgroundColor: 'var(--md-sys-color-surface-container-high)',
-      borderTop: '1px solid var(--md-sys-color-outline-variant)',
-      boxShadow: 'var(--md-sys-elevation-level2)',
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-    },
-    '.cm-panels.cm-panels-bottom': {
-      borderTop: '1px solid var(--md-sys-color-outline-variant)',
-    },
-    '.cm-panel.cm-search': {
-      padding: '12px 16px',
-      backgroundColor: 'transparent',
-      gap: '8px',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-    },
-    
-    // 输入框样式
-    '.cm-textfield': {
-      height: '40px',
-      padding: '8px 12px',
-      backgroundColor: 'var(--md-sys-color-surface)',
-      border: '1px solid var(--md-sys-color-outline-variant)',
-      borderRadius: '8px',
-      fontFamily: 'ui-monospace, monospace',
-      fontSize: '14px',
-      color: 'var(--md-sys-color-on-surface)',
-      outline: 'none',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      minWidth: '40%',
-    },
-    '.cm-textfield:focus': {
-      borderColor: 'var(--md-sys-color-primary)',
-      boxShadow: '0 0 0 3px var(--md-sys-color-primary-container)',
-    },
-    
-    // Material Design 3 按钮样式 - Filled Tonal
-    '.cm-button': {
-      height: '40px',
-      padding: '10px 24px',
-      backgroundColor: 'var(--md-sys-color-secondary-container)',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: 'var(--md-sys-color-on-secondary-container)',
-      cursor: 'pointer',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      letterSpacing: '0.1px',
-      boxShadow: 'none',
-    },
-    '.cm-button:hover': {
-      backgroundColor: 'var(--md-sys-color-secondary-container)',
-      boxShadow: 'var(--md-sys-elevation-level1)',
-    },
-    '.cm-button:active': {
-      boxShadow: 'none',
-    },
-    
-    // 关闭按钮 - Icon Button
-    'button[name="close"]': {
-      width: '48px',
-      height: '48px',
-      minWidth: '48px',
-      padding: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '50%',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: 'var(--md-sys-color-on-surface-variant)',
-      cursor: 'pointer',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      fontSize: '32px !important',
-    },
-    
-    // 自定义按钮文本
-    'button[name="replaceAll"]': {
-      fontSize: '0 !important',
-    },
-    'button[name="replaceAll"]::before': {
-      content: '"all"',
-      fontSize: '14px',
-      fontWeight: '500',
-    },
-    
-    // 选项按钮（Match case、RegExp、By word）- 改为图标开关
-    'input[type="checkbox"]': {
-      appearance: 'none',
-      width: '40px',
-      height: '40px',
-      margin: '0',
-      cursor: 'pointer',
-      borderRadius: '50%',
-      backgroundColor: 'transparent',
-      border: 'none',
-      position: 'relative',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      flexShrink: '0',
-    },
-    'input[type="checkbox"]:hover': {
-      backgroundColor: 'var(--md-sys-color-surface-container-high)',
-    },
-    'input[type="checkbox"]:checked': {
-      backgroundColor: 'transparent',
-    },
-    'input[type="checkbox"]:checked:hover': {
-      backgroundColor: 'var(--md-sys-color-surface-container-high)',
-    },
-    
-    // 隐藏 checkbox 的 label 文字，只显示 checkbox 本身（通过 ::before 添加图标）
-    'label:has(input[type="checkbox"])': {
-      fontSize: '0 !important',
-      lineHeight: '0 !important',
-      display: 'inline-flex !important',
-      alignItems: 'center !important',
-      verticalAlign: 'middle !important',
-    },
-    
-    // Match case - Aa 图标
-    'input[name="case"]::before': {
-      content: '"Aa"',
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      fontSize: '16px',
-      fontWeight: '400',
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      color: 'var(--md-sys-color-outline)',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    },
-    'input[name="case"]:checked::before': {
-      fontWeight: '700',
-      color: 'var(--md-sys-color-on-surface)',
-    },
-    
-    // RegExp - .* 图标
-    'input[name="re"]::before': {
-      content: '".*"',
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      fontSize: '16px',
-      fontWeight: '400',
-      fontFamily: 'ui-monospace, monospace',
-      color: 'var(--md-sys-color-outline)',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    },
-    'input[name="re"]:checked::before': {
-      fontWeight: '700',
-      color: 'var(--md-sys-color-on-surface)',
-    },
-    
-    // By word - "W" 图标
-    'input[name="word"]::before': {
-      content: '"W"',
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      fontSize: '16px',
-      fontWeight: '400',
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      color: 'var(--md-sys-color-outline)',
-      textDecoration: 'underline',
-      textDecorationThickness: '1px',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    },
-    'input[name="word"]:checked::before': {
-      fontWeight: '700',
-      color: 'var(--md-sys-color-on-surface)',
-      textDecorationThickness: '2px',
+    'vs/nls': {
+      availableLanguages: {
+        '*': currentLocale === 'zh-CN' ? 'zh-cn' : 'en',
+      },
     },
   });
 
-  // 自定义键盘快捷键 - 使用高优先级
-  const customKeymap = Prec.highest(keymap.of([
-    {
-      key: 'Ctrl-Enter',
-      run: () => {
-        if (onSaveInPlace) {
-          onSaveInPlace();
-          return true;
+  // Keep latest callbacks in refs to avoid stale closures in Monaco commands
+  const onSaveRef = useRef(onSave);
+  const onSaveInPlaceRef = useRef(onSaveInPlace);
+  const onFocusVersionNameRef = useRef(onFocusVersionName);
+
+  // Update refs when props change
+  useEffect(() => {
+    onSaveRef.current = onSave;
+    onSaveInPlaceRef.current = onSaveInPlace;
+    onFocusVersionNameRef.current = onFocusVersionName;
+  }, [onSave, onSaveInPlace, onFocusVersionName]);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (editorRef.current) {
+        editorRef.current.focus();
+        // Move cursor to end
+        const model = editorRef.current.getModel();
+        if (model) {
+          const lastLine = model.getLineCount();
+          const lastColumn = model.getLineMaxColumn(lastLine);
+          editorRef.current.setPosition({ lineNumber: lastLine, column: lastColumn });
         }
-        return false;
-      },
+      }
     },
-    {
-      key: 'Ctrl-Shift-Enter',
-      run: () => {
-        if (onSave) {
-          onSave();
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      key: 'Ctrl-s',
-      preventDefault: true,
-      run: () => {
-        if (onSaveInPlace) {
-          onSaveInPlace();
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      key: 'Ctrl-Shift-s',
-      preventDefault: true,
-      run: () => {
-        if (onSave) {
-          onSave();
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      key: 'Shift-Tab',
-      run: () => {
-        if (onFocusVersionName) {
-          onFocusVersionName();
-          return true;
-        }
-        return false;
-      },
-    },
-    {
-      key: 'Ctrl-f',
-      run: (view) => {
-        // 打开搜索面板
-        openSearchPanel(view);
-        return true;
-      },
-    },
-  ]));
+  }), []);
+
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    // Define M3 Theme
+    monaco.editor.defineTheme('m3-theme', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: '', foreground: '1b1c18', background: 'fdfcf5' },
+      ],
+      colors: {
+        'editor.background': '#fdfcf5',
+        'editor.foreground': '#1b1c18',
+        'editorCursor.foreground': '#a8c548',
+        'editor.selectionBackground': '#d9f799',
+        'editorLineNumber.foreground': '#2a2b24',
+        'editorGutter.background': '#e4e3d6',
+        'editor.lineHighlightBackground': '#00000000', // Transparent to match previous style or customize
+        'editor.findMatchHighlightBackground': '#E1A95F66', // ~40% opacity
+        'editor.findMatchBackground': '#E1A95F', // Solid or high opacity
+      }
+    });
+
+    monaco.editor.setTheme('m3-theme');
+
+    // Keybindings
+    // Ctrl+Enter: Save In Place
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      if (onSaveInPlaceRef.current) onSaveInPlaceRef.current();
+    });
+
+    // Ctrl+Shift+Enter: Save
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
+      if (onSaveRef.current) onSaveRef.current();
+    });
+
+    // Ctrl+S: Save In Place
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      if (onSaveInPlaceRef.current) onSaveInPlaceRef.current();
+    });
+
+    // Ctrl+Shift+S: Save
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS, () => {
+      if (onSaveRef.current) onSaveRef.current();
+    });
+    
+    // Shift+Tab: Focus Version Name
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Tab, () => {
+      if (onFocusVersionNameRef.current) onFocusVersionNameRef.current();
+    });
+  };
 
   return (
-    <div className="h-full w-full relative overflow-hidden" ref={editorRef}>
-      <CodeMirror
+    <div className="h-full w-full relative overflow-hidden">
+      <Editor
+        key={currentLocale}
+        height="100%"
+        width="100%"
+        language="markdown"
         value={value}
-        onChange={onChange}
-        extensions={[markdown(), search({ top: false }), customKeymap, theme, EditorView.lineWrapping]}
-        readOnly={readOnly}
-        className="h-full w-full"
-        onCreateEditor={(editor) => setView(editor)}
-        basicSetup={{
-          lineNumbers: true,
-          highlightActiveLineGutter: true,
-          highlightActiveLine: true,
-          foldGutter: true,
-          dropCursor: true,
-          allowMultipleSelections: true,
-          indentOnInput: true,
-          bracketMatching: true,
-          closeBrackets: true,
-          autocompletion: true,
-          rectangularSelection: true,
-          crosshairCursor: true,
-          highlightSelectionMatches: true,
-          closeBracketsKeymap: true,
-          searchKeymap: true,
-          foldKeymap: true,
-          completionKeymap: true,
-          lintKeymap: true,
+        onChange={(value) => onChange(value || '')}
+        onMount={handleEditorDidMount}
+        options={{
+          readOnly,
+          fontSize: editorFontSize,
+          lineHeight: Math.round(editorFontSize * editorLineHeight),
+          fontFamily: 'ui-monospace, monospace',
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+          automaticLayout: true,
+          padding: { top: 16, bottom: 16 },
+          lineNumbers: 'on',
+          lineNumbersMinChars: 1,
+          renderLineHighlight: 'all',
         }}
       />
     </div>

@@ -1,13 +1,15 @@
 /**
  * 版本对比模态框组件
- * 使用 @codemirror/merge 实现并排Diff视图
+ * 使用 @monaco-editor/react 实现并排Diff视图
  */
 
-import { useEffect, useRef } from 'react';
-import { MergeView } from '@codemirror/merge';
+import { useEffect } from 'react';
+import { DiffEditor, DiffOnMount } from '@monaco-editor/react';
 import type { Version } from '@/models/Version';
-import { createDiffEditorExtensions, diffService } from '@/services/diffService';
+import { diffService } from '@/services/diffService';
 import { useTranslation } from '@/i18n/I18nContext';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useI18nStore } from '@/store/i18nStore';
 
 export interface CompareModalProps {
   /** 模态框是否打开 */
@@ -34,48 +36,14 @@ export function CompareModal({
   title,
 }: CompareModalProps) {
   const t = useTranslation();
+  const { editorFontSize, editorLineHeight } = useSettingsStore();
+  const currentLocale = useI18nStore((state) => state.currentLocale);
   const modalTitle = title || t('components.compareModal.title');
-  const mergeViewRef = useRef<MergeView | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // 计算相似度
   const similarity = sourceVersion && targetVersion
     ? diffService.computeSimilarity(sourceVersion.content, targetVersion.content)
     : 0;
-
-  // 初始化和更新MergeView
-  useEffect(() => {
-    if (!isOpen || !containerRef.current || !sourceVersion || !targetVersion) {
-      return;
-    }
-
-    // 清理旧实例
-    if (mergeViewRef.current) {
-      mergeViewRef.current.destroy();
-      mergeViewRef.current = null;
-    }
-
-    // 创建新实例
-    const extensions = createDiffEditorExtensions();
-    mergeViewRef.current = new MergeView({
-      a: {
-        doc: sourceVersion.content,
-        extensions,
-      },
-      b: {
-        doc: targetVersion.content,
-        extensions,
-      },
-      parent: containerRef.current,
-    });
-
-    return () => {
-      if (mergeViewRef.current) {
-        mergeViewRef.current.destroy();
-        mergeViewRef.current = null;
-      }
-    };
-  }, [isOpen, sourceVersion, targetVersion]);
 
   // ESC键关闭
   useEffect(() => {
@@ -103,6 +71,29 @@ export function CompareModal({
     });
   };
 
+  const handleEditorDidMount: DiffOnMount = (_editor, monaco) => {
+    // Define M3 Theme (ensure it's available)
+    monaco.editor.defineTheme('m3-theme', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: '', foreground: '1b1c18', background: 'fdfcf5' },
+      ],
+      colors: {
+        'editor.background': '#fdfcf5',
+        'editor.foreground': '#1b1c18',
+        'editorCursor.foreground': '#a8c548',
+        'editor.selectionBackground': '#d9f799',
+        'editorLineNumber.foreground': '#2a2b24',
+        'editorGutter.background': '#e4e3d6',
+        'editor.lineHighlightBackground': '#00000000',
+        'diffEditor.insertedTextBackground': '#a8c54833',
+        'diffEditor.removedTextBackground': '#ff000033',
+      }
+    });
+    monaco.editor.setTheme('m3-theme');
+  };
+
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -110,9 +101,9 @@ export function CompareModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-[95vw] h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col">
+      <div className="w-[95vw] h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="p-6 border-b border-gray-200">
+        <header className="p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900">{modalTitle}</h2>
             <button
@@ -183,17 +174,31 @@ export function CompareModal({
           )}
         </header>
 
-        {/* CodeMirror Diff视图容器 - 占据剩余空间,允许内部滚动 */}
-        <div className="flex-1 min-h-0">
-          <div 
-            ref={containerRef} 
-            className="w-full h-full"
-            style={{ 
-              overflow: 'auto',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          />
+        {/* Monaco Diff视图容器 */}
+        <div className="flex-1 min-h-0 relative">
+          {sourceVersion && targetVersion && (
+            <DiffEditor
+              key={currentLocale}
+              height="100%"
+              width="100%"
+              language="markdown"
+              original={sourceVersion.content}
+              modified={targetVersion.content}
+              onMount={handleEditorDidMount}
+              options={{
+                readOnly: true,
+                fontSize: editorFontSize,
+                lineHeight: Math.round(editorFontSize * editorLineHeight),
+                fontFamily: 'ui-monospace, monospace',
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                automaticLayout: true,
+                padding: { top: 16, bottom: 16 },
+                renderSideBySide: true,
+              }}
+            />
+          )}
         </div>
       </div>
     </div>
