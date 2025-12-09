@@ -192,7 +192,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface text-surface-onSurface">
+    <div className="min-h-dynamic-screen bg-surface text-surface-onSurface">
       <header className="bg-primary text-onPrimary px-6 py-1 shadow-m3-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('pages.settings.title')}</h1>
         <button

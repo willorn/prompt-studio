@@ -321,7 +321,7 @@ const MainView: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-surface">
+    <div className="h-dynamic-screen flex flex-col bg-surface">
       {/* 顶部标题栏 */}
       <header className="bg-primary text-onPrimary px-6 py-1 shadow-m3-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Prompt Studio</h1>

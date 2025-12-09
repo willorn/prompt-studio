@@ -57,6 +57,19 @@ body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
+  }
+  
+  @layer utilities {
+    .h-dynamic-screen {
+      height: 100vh;
+      height: 100dvh;
+    }
+  
+    .min-h-dynamic-screen {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
 }
 
 /* CodeMirror M3 主题 */

@@ -163,7 +163,7 @@ export const VerticalResizableSplitter: React.FC<VerticalResizableSplitterProps>
         <button
           className={`absolute z-20 w-6 h-6 rounded-md bg-surface/80 border shadow-sm flex items-center justify-center 
             text-onSurface transition-opacity duration-200 hover:bg-surface focus:opacity-100 active:scale-95
-            ${isCollapsed ? 'opacity-100 mb-20' : 'opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'}`}
+            ${isCollapsed ? 'opacity-100 mb-10' : 'opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'}`}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           onClick={(e) => {
