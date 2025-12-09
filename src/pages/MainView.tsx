@@ -20,6 +20,25 @@ import { ResizableSplitter } from '@/components/common/ResizableSplitter';
 import { VerticalResizableSplitter } from '@/components/common/VerticalResizableSplitter';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 
+const SaveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+    <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+    <path d="M7 3v4a1 1 0 0 0 1 1h7" />
+  </svg>
+);
+
+const SaveNewIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+    <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+    <path d="M7 3v4a1 1 0 0 0 1 1h7" />
+    <circle cx="17" cy="17" r="6" className="fill-surface-variant" stroke="none" />
+    <path d="M17 12v10" />
+    <path d="M12 17h10" />
+  </svg>
+);
+
 const MainView: React.FC = () => {
   const navigate = useNavigate();
   const t = useTranslation();
@@ -60,6 +79,24 @@ const MainView: React.FC = () => {
   // 版本名称输入框的 ref，用于焦点切换
   const versionNameInputRef = useRef<HTMLInputElement>(null);
 
+  // 标题栏容器 ref，用于响应式计算
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [isCompactToolbar, setIsCompactToolbar] = useState(false);
+
+  useEffect(() => {
+    if (!toolbarRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // 如果宽度小于 520px，切换到紧凑模式（图标按钮）
+        setIsCompactToolbar(entry.contentRect.width < 520);
+      }
+    });
+
+    resizeObserver.observe(toolbarRef.current.parentElement as HTMLElement);
+    return () => resizeObserver.disconnect();
+  }, [toolbarRef.current]);
+
   // 重复提醒对话框状态
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [duplicateVersion, setDuplicateVersion] = useState<Version | null>(null);
@@ -72,7 +109,10 @@ const MainView: React.FC = () => {
   // 附件区域拖拽状态
   const [isDraggingAttachments, setIsDraggingAttachments] = useState(false);
 
-  
+  // 面板折叠状态 (不持久化)
+  // 宽屏 (>= 1024px) 默认展开，窄屏 (< 1024px) 默认折叠
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(() => window.innerWidth < 1024);
+  const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(() => window.innerWidth < 1024);
 
   // 处理版本树中的节点点击，考虑对比模式
   const handleVersionNodeClick = (versionId: string) => {
@@ -321,21 +361,26 @@ const MainView: React.FC = () => {
         {/* 中央编辑区 */}
         <div 
           className="flex flex-col"
-          style={{ width: `${layoutPreference.canvasPanelWidthRatio * 100}%` }}
-        >
-          {/* 版本名称输入框 */}
+            style={{ width: isRightPanelCollapsed ? '100%' : `${layoutPreference.canvasPanelWidthRatio * 100}%` }}
+          >
             {sidebarCollapsed && (!currentProjectId || !currentVersionId) && (
               <div className="px-4 py-3">
                 <SidebarToggle />
               </div>
             )}
 
-          {currentProjectId && currentVersionId && (
-              <div className="px-4 py-3 bg-surface-variant border-b border-surface-onVariant/20">
+            {/* 版本名称输入框 */}
+            {currentProjectId && currentVersionId && (
+              <div ref={toolbarRef} className="toolbar px-4 py-3 bg-surface-variant border-b border-surface-onVariant/20">
                 <div className="flex items-center gap-2 h-10">
-                  {sidebarCollapsed && (<SidebarToggle />)}
-                  <label htmlFor="version-name" className="text-sm font-medium text-surface-onVariant whitespace-nowrap">
-                    {t('pages.mainView.versionName')}:
+                  {sidebarCollapsed && (<div className="flex-shrink-0"><SidebarToggle /></div>)}
+                  <label
+                    htmlFor="version-name"
+                    className="text-sm font-medium text-surface-onVariant whitespace-nowrap overflow-hidden text-ellipsis min-w-0"
+                    style={{ flexShrink: 3 }}
+                    title={t('pages.mainView.versionName')}
+                  >
+                    {isCompactToolbar ? '' : t('pages.mainView.versionName') + ':'}
                   </label>
                   <input
                     ref={versionNameInputRef}
@@ -369,7 +414,8 @@ const MainView: React.FC = () => {
                       }
                     }}
                     placeholder={t('pages.mainView.versionNamePlaceholder')}
-                    className="flex-1 px-3 py-2 text-sm bg-surface border border-surface-onVariant/30 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    className="flex-1 px-2 py-2 text-sm bg-surface border border-surface-onVariant/30 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary min-w-[10px]"
+                    style={{ flexShrink: 1 }}
                   />
 
                   {/* 保存按钮 */}
@@ -379,8 +425,9 @@ const MainView: React.FC = () => {
                     size="small"
                     disabled={!canSaveInPlace || !currentProjectId}
                     title={`${t('components.toolbar.saveInPlace')} (Ctrl+S / Ctrl+Enter)`}
+                    className="whitespace-nowrap flex-shrink-0"
                   >
-                    {t('components.toolbar.saveInPlace')}
+                    {isCompactToolbar ? <SaveIcon /> : t('components.toolbar.saveInPlace')}
                   </Button>
 
                   <Button
@@ -389,19 +436,20 @@ const MainView: React.FC = () => {
                     size="small"
                     disabled={!currentProjectId}
                     title={`${t('components.toolbar.saveNew')} (Ctrl+Shift+S / Ctrl+Shift+Enter)`}
+                    className="whitespace-nowrap flex-shrink-0"
                   >
-                    {t('components.toolbar.saveNew')}
+                    {isCompactToolbar ? <SaveNewIcon /> : t('components.toolbar.saveNew')}
                   </Button>
                 </div>
               </div>
-          )}
+            )}
 
           <div className="flex-1 flex flex-col overflow-hidden" ref={editorContainerRef}>
             {currentProjectId ? (
               <>
                 <div 
                   className="overflow-hidden"
-                  style={{ height: `${layoutPreference.editorHeightRatio * 100}%` }}
+                    style={{ height: isBottomPanelCollapsed ? '100%' : `${layoutPreference.editorHeightRatio * 100}%` }}
                 >
                   <PromptEditor
                     ref={editorRef}
@@ -423,6 +471,8 @@ const MainView: React.FC = () => {
                     minRatio={0.3}
                     maxRatio={0.9}
                     containerRef={editorContainerRef}
+                      isCollapsed={isBottomPanelCollapsed}
+                      onCollapse={() => setIsBottomPanelCollapsed(!isBottomPanelCollapsed)}
                   />
                 )}
                 
@@ -433,7 +483,10 @@ const MainView: React.FC = () => {
                       ? 'bg-primary-container/30 border-2 border-dashed border-primary'
                       : 'bg-surface-container-low'
                       }`}
-                    style={{ height: `${(1 - layoutPreference.editorHeightRatio) * 100}%` }}
+                      style={{
+                        height: isBottomPanelCollapsed ? '0px' : `${(1 - layoutPreference.editorHeightRatio) * 100}%`,
+                        display: isBottomPanelCollapsed ? 'none' : 'block'
+                      }}
                     onDrop={handleAttachmentDrop}
                     onDragOver={handleAttachmentDragOver}
                     onDragLeave={handleAttachmentDragLeave}
@@ -468,21 +521,26 @@ const MainView: React.FC = () => {
           </div>
         </div>
 
-        {/* 可拖动分隔符 */}
-        <ResizableSplitter
-          ratio={layoutPreference.canvasPanelWidthRatio}
-          onRatioChange={setCanvasRatio}
-          onDragStart={startDragging}
-          onDragEnd={stopDragging}
-          minRatio={0.2}
-          maxRatio={0.8}
+          {/* 可拖动分隔符 */}
+          <ResizableSplitter
+            ratio={layoutPreference.canvasPanelWidthRatio}
+            onRatioChange={setCanvasRatio}
+            onDragStart={startDragging}
+            onDragEnd={stopDragging}
+            minRatio={0.2}
+            maxRatio={0.8}
             containerRef={mainSplitContainerRef}
-        />
+            isCollapsed={isRightPanelCollapsed}
+            onCollapse={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
+          />
 
         {/* 右侧画布区 - 版本树可视化 */}
         <div 
           className="border-l border-surface-onVariant/20 overflow-hidden"
-          style={{ width: `${(1 - layoutPreference.canvasPanelWidthRatio) * 100}%` }}
+            style={{
+              width: isRightPanelCollapsed ? '0px' : `${(1 - layoutPreference.canvasPanelWidthRatio) * 100}%`,
+              display: isRightPanelCollapsed ? 'none' : 'block'
+            }}
         >
           <VersionCanvas
             projectId={currentProjectId}

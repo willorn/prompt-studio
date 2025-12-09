@@ -1,4 +1,4 @@
-import { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
+import { useRef, useImperativeHandle, forwardRef, useEffect, useState } from 'react';
 import Editor, { Monaco, OnMount, loader } from '@monaco-editor/react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useI18nStore } from '@/store/i18nStore';
@@ -54,6 +54,63 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
     onSaveInPlaceRef.current = onSaveInPlace;
     onFocusVersionNameRef.current = onFocusVersionName;
   }, [onSave, onSaveInPlace, onFocusVersionName]);
+
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
+
+  const handleSelectAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (editorRef.current) {
+      editorRef.current.focus();
+      const model = editorRef.current.getModel();
+      if (model) {
+        editorRef.current.setSelection(model.getFullModelRange());
+      }
+    }
+  };
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (editorRef.current) {
+      const selection = editorRef.current.getSelection();
+      let textToCopy = '';
+      if (selection && !selection.isEmpty()) {
+        textToCopy = editorRef.current.getModel()?.getValueInRange(selection) || '';
+      } else {
+        textToCopy = editorRef.current.getValue();
+      }
+
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).catch(console.error);
+      }
+      editorRef.current.focus();
+    }
+  };
+
+  const handleSelectLine = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (editorRef.current) {
+      editorRef.current.focus();
+      const position = editorRef.current.getPosition();
+      const model = editorRef.current.getModel();
+      if (position && model) {
+        const { lineNumber } = position;
+        const lineContent = model.getLineContent(lineNumber);
+        editorRef.current.setSelection({
+          startLineNumber: lineNumber,
+          startColumn: 1,
+          endLineNumber: lineNumber,
+          endColumn: lineContent.length + 1,
+        });
+      }
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -147,8 +204,37 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(({
           lineNumbersMinChars: 2,
           renderLineHighlight: 'all',
           folding: false,
+          scrollbar: {
+            verticalScrollbarSize: 7,
+            horizontalScrollbarSize: 7,
+          },
         }}
       />
+      {isTouchDevice && (
+        <div className="absolute right-5 top-[60%] flex flex-col gap-3 p-2 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl z-50">
+          <button
+            onClick={handleSelectAll}
+            className="p-3 text-gray-600 bg-white/40 rounded-xl transition-all active:scale-95 shadow-sm"
+            title="Select All"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-text-select-icon lucide-text-select w-6 h-6"><path d="M14 21h1" /><path d="M14 3h1" /><path d="M19 3a2 2 0 0 1 2 2" /><path d="M21 14v1" /><path d="M21 19a2 2 0 0 1-2 2" /><path d="M21 9v1" /><path d="M3 14v1" /><path d="M3 9v1" /><path d="M5 21a2 2 0 0 1-2-2" /><path d="M5 3a2 2 0 0 0-2 2" /><path d="M7 12h10" /><path d="M7 16h6" /><path d="M7 8h8" /><path d="M9 21h1" /><path d="M9 3h1" /></svg>
+          </button>
+          <button
+            onClick={handleSelectLine}
+            className="p-3 text-gray-600 bg-white/40 rounded-xl transition-all active:scale-95 shadow-sm"
+            title="Select Line"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-row-select"> <path d="M7 5h10" /> <path d="M7 19h10" /> <path d="M9 12h6" /> <path d="M6 9H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h1" /> <path d="M18 9h1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1" /> </svg>
+          </button>
+          <button
+            onClick={handleCopy}
+            className="p-3 text-gray-600 bg-white/40 rounded-xl transition-all active:scale-95 shadow-sm"
+            title="Copy"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy-icon lucide-copy w-6 h-6"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 });

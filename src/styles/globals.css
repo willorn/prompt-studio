@@ -96,3 +96,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: theme('colors.primary.DEFAULT');
 }
+
+/* Monaco Editor Scrollbar Styles */
+.monaco-scrollable-element > .scrollbar > .slider {
+  border-radius: 4px;
+}

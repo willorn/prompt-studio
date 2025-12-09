@@ -24,6 +24,12 @@ interface VerticalResizableSplitterProps {
   
   /** 容器ref，用于计算相对位置 */
   containerRef: React.RefObject<HTMLElement>;
+
+  /** 是否已折叠 */
+  isCollapsed?: boolean;
+
+  /** 折叠状态切换回调 */
+  onCollapse?: () => void;
 }
 
 /**
@@ -39,6 +45,8 @@ export const VerticalResizableSplitter: React.FC<VerticalResizableSplitterProps>
   maxRatio = 0.8,
   className = '',
   containerRef,
+  isCollapsed,
+  onCollapse,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const rafRef = useRef<number | null>(null);
@@ -134,9 +142,8 @@ export const VerticalResizableSplitter: React.FC<VerticalResizableSplitterProps>
 
   return (
     <div
-      className={`relative flex-shrink-0 h-1 bg-surface-variant hover:bg-primary transition-colors duration-200 cursor-row-resize select-none ${
-        isDragging ? 'bg-primary' : ''
-      } ${className}`}
+      className={`relative flex-shrink-0 h-1 bg-surface-variant hover:bg-primary transition-colors duration-200 cursor-row-resize 
+        select-none flex items-center justify-center group z-10 ${isDragging ? 'bg-primary' : ''} ${className}`}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       style={{
@@ -150,6 +157,30 @@ export const VerticalResizableSplitter: React.FC<VerticalResizableSplitterProps>
           cursor: 'row-resize',
         }}
       />
+
+      {/* 折叠/展开按钮 */}
+      {onCollapse && (
+        <button
+          className={`absolute z-20 w-6 h-6 rounded-md bg-surface/80 border shadow-sm flex items-center justify-center 
+            text-onSurface transition-opacity duration-200 hover:bg-surface focus:opacity-100 active:scale-95
+            ${isCollapsed ? 'opacity-100 mb-20' : 'opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'}`}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCollapse();
+          }}
+          aria-label={isCollapsed ? "Expand" : "Collapse"}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+            {/* Use conditional logic for arrow direction: 
+                If collapsed (Bottom panel hidden), we want to expand (Move splitter Up) -> Up Arrow
+                If expanded (Bottom panel visible), we want to collapse (Move splitter Down) -> Down Arrow
+             */}
+            {isCollapsed ? <path d="M18 15l-6-6-6 6" /> : <path d="M6 9l6 6 6-6" />}
+          </svg>
+        </button>
+      )}
     </div>
   );
 };
