@@ -87,9 +87,8 @@ export const FileIcon: React.FC<IconProps> = (props) => (
 // 打开的文件夹图标
 export const FolderOpenIcon: React.FC<IconProps> = (props) => (
   <BaseIcon {...props}>
-    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-    <path d="M15 9v6" />
-    <path d="M13 11h6" />
+    <path d="M2 13V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v5" />
+    <path d="M2 13l3-3h14l3 3v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z" />
   </BaseIcon>
 );
 

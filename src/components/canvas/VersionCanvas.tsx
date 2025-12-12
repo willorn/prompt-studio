@@ -12,12 +12,14 @@ interface VersionCanvasProps {
   projectId: string | null;
   onNodeClick?: (versionId: string) => void;
   hasProject?: boolean;
+  isCollapsed?: boolean;
 }
 
 const VersionCanvas: React.FC<VersionCanvasProps> = ({
   projectId,
   onNodeClick,
   hasProject = false,
+  isCollapsed = false,
 }) => {
   const t = useTranslation();
   
@@ -190,8 +192,8 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
 
   // 渲染版本树并自动定位到选中的版本
   useEffect(() => {
-    if (!rendererRef.current || !projectId) return;
-
+    if (!rendererRef.current || !projectId || isCollapsed) return;
+    
     const projectVersions = versions.filter((v) => v.projectId === projectId);
     rendererRef.current.renderTree(projectVersions);
     
@@ -207,7 +209,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
         }
       }, 100); // 短暂延迟确保渲染完成
     }
-  }, [versions, projectId, currentVersionId]);
+  }, [versions, projectId, currentVersionId, isCollapsed]);
 
   // 搜索结果高亮和自动滚动
   useEffect(() => {

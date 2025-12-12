@@ -516,6 +516,7 @@ const MainView: React.FC = () => {
             projectId={currentProjectId}
             onNodeClick={handleVersionNodeClick}
             hasProject={!!currentProjectId}
+            isCollapsed={isRightPanelCollapsed}
           />
         </div>
         </div>
