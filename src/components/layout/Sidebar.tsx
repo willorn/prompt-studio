@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUiStore } from '@/store/uiStore';
-import { Button } from '@/components/common/Button';
+import { MinimalButton } from '@/components/common/MinimalButton';
 import { Icons } from '@/components/icons/Icons';
 import { FolderTree } from './FolderTree';
 import { useTranslation } from '@/i18n/I18nContext';
@@ -53,26 +53,22 @@ export const Sidebar: React.FC = () => {
           <SidebarToggle />
         </div>
         <div className="flex gap-2 justify-center">
-          <Button
-            variant="outlined"
-            size="small"
+          <MinimalButton
             onClick={handleCreateFolder}
-            className="w-fit aspect-square flex items-center justify-center relative"
+            className="w-10 aspect-square flex items-center justify-center relative px-2 py-1 rounded-xl"
             title={t('components.sidebar.createFolder')}
           >
             <Icons.Folder size={16} />
             <span className="absolute top-0 right-1 text-base leading-none font-bold opacity-70">+</span>
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
+          </MinimalButton>
+          <MinimalButton
             onClick={handleCreateProject}
-            className="w-fit aspect-square flex items-center justify-center relative"
+            className="w-10 aspect-square flex items-center justify-center relative px-2 py-1 rounded-xl"
             title={t('components.sidebar.createProject')}
           >
             <Icons.File size={16} />
             <span className="absolute top-0 right-1 text-base leading-none font-bold opacity-70">+</span>
-          </Button>
+          </MinimalButton>
         </div>
       </div>
 

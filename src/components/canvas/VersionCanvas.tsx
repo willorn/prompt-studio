@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useVersionStore } from '@/store/versionStore';
 import { CanvasRenderer } from '@/services/canvasRenderer';
 import { CanvasInteraction } from '@/services/canvasInteraction';
-import { Button } from '@/components/common/Button';
+import { MinimalButton } from '@/components/common/MinimalButton';
 import { SearchBar } from '@/components/canvas/SearchBar';
 import { useVersionSearch } from '@/hooks/useVersionSearch';
 import { Icons } from '@/components/icons/Icons';
@@ -316,24 +316,21 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
         {/* 版本操作按钮 */}
         {selectedVersionId && (
           <div className="flex gap-2 h-10 items-center @container">
-            <Button
-              variant="outlined"
-              size="small"
+            <MinimalButton
               onClick={handleCompare}
               disabled={!hasProject || !currentVersionId}
               title={compareMode ? t('components.canvas.exitCompare') : t('components.canvas.enterCompare')}
-              className={compareMode ? "bg-primary-container border-primary" : ""}
+              className={`px-2 py-1 text-sm ${compareMode ? "bg-primary-container border-primary" : ""}`}
             >
               <Icons.Compare size={16} className='inline @xs:hidden' /> <span className='hidden @xs:inline'>{compareMode ? t('components.canvas.exitCompare') : t('components.canvas.compare')}</span>
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
+            </MinimalButton>
+            <MinimalButton
               onClick={handleDeleteVersion}
               title={t('components.canvas.deleteVersion')}
+              className="px-2 py-1 text-sm"
             >
               <Icons.Trash size={16} className='inline @xs:hidden' /> <span className='hidden @xs:inline'>{t('common.delete')}</span>
-            </Button>
+            </MinimalButton>
           </div>
         )}
       </div>
@@ -349,33 +346,33 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
 
         {/* 画布控制按钮 - 浮动在canvas上，但位置固定在右下角 */}
         <div className="absolute bottom-4 right-4 flex flex-col @xs:flex-row gap-2 z-10">
-          <Button
-            variant="canvasControl"
-            size="small"
+          <MinimalButton
+            variant="secondary"
             onClick={handleZoomIn}
             title={t('components.canvas.zoomIn')}
             aria-label={t('components.canvas.zoomIn')}
+            className="w-8 h-8 px-2 py-1 text-sm"
           >
             <Icons.SearchPlus size={16} />
-          </Button>
-          <Button
-            variant="canvasControl"
-            size="small"
+          </MinimalButton>
+          <MinimalButton
+            variant="secondary"
             onClick={handleZoomOut}
             title={t('components.canvas.zoomOut')}
             aria-label={t('components.canvas.zoomOut')}
+            className="w-8 h-8 px-2 py-1 text-sm"
           >
             <Icons.SearchMinus size={16} />
-          </Button>
-          <Button
-            variant="canvasControl"
-            size="small"
+          </MinimalButton>
+          <MinimalButton
+            variant="secondary"
             onClick={handleResetView}
             title={t('components.canvas.resetView')}
             aria-label={t('components.canvas.resetView')}
+            className="w-8 h-8 px-2 py-1 text-sm"
           >
             <Icons.Refresh size={16} />
-          </Button>
+          </MinimalButton>
         </div>
       </div>
     </div>

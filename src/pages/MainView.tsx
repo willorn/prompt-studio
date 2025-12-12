@@ -9,7 +9,7 @@ import PromptEditor, { PromptEditorRef } from '@/components/editor/PromptEditor'
 import { useUiStore } from '@/store/uiStore';
 import { useTranslation } from '@/i18n/I18nContext';
 import type { Version } from '@/models/Version';
-import { Button } from '@/components/common/Button';
+import { MinimalButton } from '@/components/common/MinimalButton';
 import VersionCanvas from '@/components/canvas/VersionCanvas';
 import { AttachmentGallery } from '@/components/version/AttachmentGallery';
 import { VersionMetaCard } from '@/components/version/VersionMetaCard';
@@ -410,27 +410,23 @@ const MainView: React.FC = () => {
                   />
 
                   {/* 保存按钮 */}
-                  <Button
+                  <MinimalButton
                     onClick={handleSaveInPlace}
-                    variant="outlined"
-                    size="small"
                     disabled={!canSaveInPlace || !currentProjectId}
                     title={`${t('components.toolbar.saveInPlace')} (Ctrl+S / Ctrl+Enter)`}
-                    className="whitespace-nowrap flex-shrink-0"
+                    className="whitespace-nowrap flex-shrink-0 px-2 py-1 text-sm"
                   >
                     <span className="inline @xs:hidden"><SaveIcon /></span> <span className="hidden @xs:inline">{t('components.toolbar.saveInPlace')}</span>
-                  </Button>
+                  </MinimalButton>
 
-                  <Button
+                  <MinimalButton
                     onClick={handleSave}
-                    variant="outlined"
-                    size="small"
                     disabled={!currentProjectId}
                     title={`${t('components.toolbar.saveNew')} (Ctrl+Shift+S / Ctrl+Shift+Enter)`}
-                    className="whitespace-nowrap flex-shrink-0"
+                    className="whitespace-nowrap flex-shrink-0 px-2 py-1 text-sm"
                   >
                     <span className="inline @xs:hidden"><SaveNewIcon /></span> <span className="hidden @xs:inline">{t('components.toolbar.saveNew')}</span>
-                  </Button>
+                  </MinimalButton>
                 </div>
               </div>
             )}

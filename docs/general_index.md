@@ -44,22 +44,32 @@ src/
 |   |   |-- DuplicateDialog.tsx: 复制对话框组件
 |   |   |-- ImagePreview.tsx: 图片预览组件
 |   |   |-- Input.tsx: 通用输入框组件
+|   |   |-- LanguageSwitcher.tsx: 语言切换组件
 |   |   |-- Modal.tsx: 通用模态框组件
 |   |   |-- ResizableSplitter.tsx: 可调整大小的分割面板组件
+|   |   |-- VerticalResizableSplitter.tsx: 垂直方向可调整大小的分割面板组件
 |   |-- editor/: 编辑器相关组件
 |   |   |-- EditorToolbar.tsx: 编辑器工具栏组件
 |   |   |-- PromptEditor.tsx: 提示词编辑器组件
 |   |   |-- SearchPanelUI.tsx: 编辑器搜索面板组件，支持查找、替换、正则表达式等功能
+|   |-- icons/: 图标组件
+|   |   |-- Icons.tsx: 图标集合组件
 |   |-- layout/: 布局相关组件
 |   |   |-- FolderTree.tsx: 文件夹树形结构组件
-|   |   |-- ProjectList.tsx: 项目列表组件
 |   |   |-- Sidebar.tsx: 侧边栏组件
 |   |-- version/: 版本相关组件
 |   |   |-- AttachmentGallery.tsx: 附件画廊组件，支持图片/视频上传、预览、下载
 |   |   |-- CompareModal.tsx: 版本比较模态框组件
 |   |   |-- VersionCard.tsx: 版本卡片组件
 |   |   |-- VersionMetaCard.tsx: 版本元数据（评分、备注）卡片组件
-|-- contexts/: React上下文目录
+|-- i18n/: 国际化相关
+|   |-- detectLanguage.ts: 语言检测工具
+|   |-- I18nContext.tsx: 国际化上下文组件
+|   |-- types.ts: 国际化类型定义
+|   |-- locales/: 多语言资源目录
+|       |-- en-US.ts: 英文语言包
+|       |-- index.ts: 语言包索引
+|       |-- zh-CN.ts: 中文语言包
 |-- db/: 数据库相关
 |   |-- migrations.ts: 数据库迁移脚本
 |   |-- schema.ts: 数据库模式定义
@@ -89,8 +99,9 @@ src/
 |   |-- searchService.ts: 搜索功能服务
 |   |-- snippetManager.ts: 代码片段管理服务
 |   |-- versionManager.ts: 版本管理服务
-|   |-- webdavService.ts: WebDAV同步服务
+|   |-- webdavService.ts: WebDAV同步服务，支持与远程服务器同步数据
 |-- store/: 状态管理
+|   |-- i18nStore.ts: 国际化状态管理
 |   |-- projectStore.ts: 项目状态管理
 |   |-- searchStore.ts: 搜索状态管理
 |   |-- settingsStore.ts: 设置状态管理
@@ -115,7 +126,6 @@ src/
 tests/
 |-- component/: 组件测试
 
-|   |-- ProjectList.test.tsx: 项目列表组件测试
 |   |-- PromptEditor.test.tsx: 提示词编辑器组件测试
 |   |-- VersionCanvas.test.tsx: 版本画布组件测试
 |   |-- VersionCard.test.tsx: 版本卡片组件测试
