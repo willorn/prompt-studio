@@ -93,6 +93,7 @@ src/
 |   |-- diffService.ts: 差异计算服务
 |   |-- exportService.ts: 导入导出功能服务（支持 JSON 和 ZIP 格式，导出时自动清理运行时字段）
 |   |-- folderManager.ts: 文件夹管理服务
+|   |-- importService.ts: 统一的导入服务，支持从 WebDAV 和 ZIP 文件导入，提供合并和覆盖两种模式
 |   |-- initializeSampleData.ts: 示例数据初始化服务，为全新用户创建示例项目
 |   |-- layoutManager.ts: 布局管理服务，管理画布宽度和编辑器高度比例
 |   |-- projectManager.ts: 项目管理服务
@@ -118,6 +119,8 @@ src/
 |   |-- tree.ts: 树形结构操作工具
 |   |-- treeLayout.ts: 树形布局计算工具
 |   |-- validation.ts: 数据验证工具
+|-- types/: 类型定义目录
+|   |-- import.ts: 导入相关类型定义
 ```
 
 ## tests: 测试目录
@@ -135,6 +138,7 @@ tests/
 |   |-- version-tree-navigation.e2e.ts: 版本树导航端到端测试
 |-- unit/: 单元测试
 |   |-- hash.test.ts: 哈希函数单元测试
+|   |-- importService.test.ts: 导入服务单元测试
 |   |-- normalize.test.ts: 标准化函数单元测试
 |   |-- projectManager.test.ts: 项目管理器单元测试
 |   |-- tree.test.ts: 树形结构操作单元测试

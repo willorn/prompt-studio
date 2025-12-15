@@ -6,6 +6,8 @@ import { createClient, type WebDAVClient } from 'webdav';
 import { db } from '@/db/schema';
 import JSZip from 'jszip';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
+import { importService } from './importService';
+import { ImportOptions, ImportProgressCallback } from '@/types/import';
 
 export interface WebDAVConfig {
   url: string;
@@ -101,7 +103,7 @@ export class WebDAVService {
       if (canvasRatio !== null) settings[STORAGE_KEYS.CANVAS_RATIO] = canvasRatio;
       if (editorHeightRatio !== null) settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] = editorHeightRatio;
       if (sidebarCollapsed !== null) settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] = sidebarCollapsed;
-      
+
       zip.file('settings.json', JSON.stringify(settings, null, 2));
 
       zip.file(
@@ -164,7 +166,7 @@ export class WebDAVService {
       }
 
       const contents = await this.client.getDirectoryContents(dirPath);
-      console.log(`contents: ${JSON.stringify(contents)}`)
+      console.log(`contents: ${JSON.stringify(contents)}`);
 
       return (contents as any[])
         .filter((item) => item.type === 'file' && item.basename.endsWith('.zip'))
@@ -180,113 +182,17 @@ export class WebDAVService {
       throw new Error(`获取备份列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }
-
   /**
-   * 从 WebDAV 还原数据
+   * 从 WebDAV 还原数据（使用新的导入服务）
    */
-  async restoreFromWebDAV(remotePath: string): Promise<void> {
-    if (!this.client) {
-      throw new Error('请先配置 WebDAV 连接');
-    }
-
-    try {
-      // 1. 从 WebDAV 下载文件
-      const arrayBuffer = (await this.client.getFileContents(remotePath, {
-        format: 'binary',
-      })) as ArrayBuffer;
-
-      // 2. 解析 ZIP
-      const zip = await JSZip.loadAsync(arrayBuffer);
-
-      // 3. 读取数据文件
-      const projectsFile = zip.file('projects.json');
-      const foldersFile = zip.file('folders.json');
-      const versionsFile = zip.file('versions.json');
-      const snippetsFile = zip.file('snippets.json');
-      const attachmentsFile = zip.file('attachments.json');
-      const settingsFile = zip.file('settings.json');
-
-      // 4. 清空现有数据（可选，根据需求决定是否合并）
-      const shouldClear = confirm('是否清空现有数据后还原？（取消则合并数据）');
-      if (shouldClear) {
-        await db.transaction('rw', db.projects, db.folders, db.versions, db.snippets, db.attachments, async () => {
-          await db.projects.clear();
-          await db.folders.clear();
-          await db.versions.clear();
-          await db.snippets.clear();
-          await db.attachments.clear();
-        });
-      }
-
-      // 5. 导入数据
-      if (projectsFile) {
-        const projects = JSON.parse(await projectsFile.async('text'));
-        await db.projects.bulkPut(projects);
-      }
-
-      if (foldersFile) {
-        const folders = JSON.parse(await foldersFile.async('text'));
-        await db.folders.bulkPut(folders);
-      }
-
-      if (versionsFile) {
-        const versions = JSON.parse(await versionsFile.async('text'));
-        await db.versions.bulkPut(versions);
-      }
-
-      if (snippetsFile) {
-        const snippets = JSON.parse(await snippetsFile.async('text'));
-        await db.snippets.bulkPut(snippets);
-      }
-
-      if (attachmentsFile) {
-        const attachmentMetadata = JSON.parse(await attachmentsFile.async('text'));
-        const attachmentsFolder = zip.folder('attachments');
-
-        if (attachmentsFolder) {
-          const attachments = await Promise.all(
-            attachmentMetadata.map(async (meta: any) => {
-              const blobFile = attachmentsFolder.file(meta.id);
-              if (blobFile) {
-                const blob = await blobFile.async('blob');
-                return {
-                  ...meta,
-                  blob,
-                };
-              }
-              return null;
-            })
-          );
-
-          const validAttachments = attachments.filter((att) => att !== null);
-          await db.attachments.bulkPut(validAttachments as any[]);
-        }
-      }
-
-      // 6. 导入设置数据
-      if (settingsFile) {
-        const settings = JSON.parse(await settingsFile.async('text'));
-        // 恢复 WebDAV 配置（除了当前使用的配置）
-        if (settings[STORAGE_KEYS.WEBDAV_CONFIG] && shouldClear) {
-          // 保留当前 WebDAV 配置，不覆盖
-          // storage.set(STORAGE_KEYS.WEBDAV_CONFIG, settings[STORAGE_KEYS.WEBDAV_CONFIG]);
-        }
-        // 恢复布局设置
-        if (settings[STORAGE_KEYS.CANVAS_RATIO] !== undefined) {
-          storage.set(STORAGE_KEYS.CANVAS_RATIO, settings[STORAGE_KEYS.CANVAS_RATIO]);
-        }
-        if (settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] !== undefined) {
-          storage.set(STORAGE_KEYS.EDITOR_HEIGHT_RATIO, settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO]);
-        }
-        if (settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] !== undefined) {
-          storage.set(STORAGE_KEYS.SIDEBAR_COLLAPSED, settings[STORAGE_KEYS.SIDEBAR_COLLAPSED]);
-        }
-      }
-
-      console.log('数据还原成功');
-    } catch (error) {
-      console.error('WebDAV 还原失败:', error);
-      throw new Error(`还原失败: ${error instanceof Error ? error.message : '未知错误'}`);
+  async restoreFromWebDAV(
+    remotePath: string,
+    options: ImportOptions,
+    onProgress?: ImportProgressCallback
+  ): Promise<void> {
+    const result = await importService.importFromWebDAV(this, remotePath, options, onProgress);
+    if (!result.success) {
+      throw new Error(result.message);
     }
   }
 

@@ -94,17 +94,23 @@ export interface TranslationData {
     settings: {
       title: string;
       
-      local: {
-        title: string;
-        exportZip: string;
-        exportDescription: string;
-        importZip: string;
-        unsupportedFormat: string;
-        importSuccess: string;
-        importFailed: string;
-        exportFailed: string;
-      };
-
+            local: {
+              title: string;
+              exportZip: string;
+              exportDescription: string;
+              importZip: string;
+              unsupportedFormat: string;
+              importSuccess: string;
+              importFailed: string;
+              exportFailed: string;
+              importMode: {
+                selectMode: string;
+                mergeMode: string;
+                mergeModeDescription: string;
+                overwriteMode: string;
+                overwriteModeDescription: string;
+              };
+            };
       webdav: {
         title: string;
         serverUrl: string;

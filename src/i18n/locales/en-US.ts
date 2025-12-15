@@ -47,17 +47,23 @@ export const enUS: TranslationData = {
     settings: {
       title: 'Settings',
       
-      local: {
-        title: 'Local Import/Export',
-        exportZip: 'Export as ZIP',
-        exportDescription: 'Export all projects and versions as a ZIP file',
-        importZip: 'Import from ZIP',
-        unsupportedFormat: 'Unsupported file format',
-        importSuccess: 'Import successful',
-        importFailed: 'Import failed',
-        exportFailed: 'Export failed',
-      },
-
+            local: {
+              title: 'Local Import/Export',
+              exportZip: 'Export as ZIP',
+              exportDescription: 'Export all projects and versions as a ZIP file',
+              importZip: 'Import from ZIP',
+              unsupportedFormat: 'Unsupported file format',
+              importSuccess: 'Import successful',
+              importFailed: 'Import failed',
+              exportFailed: 'Export failed',
+              importMode: {
+                selectMode: 'Select Import Mode',
+                mergeMode: 'Merge Import (Recommended)',
+                mergeModeDescription: 'Keep existing data and only import new data. Uses UUID to determine if data already exists.',
+                overwriteMode: 'Overwrite Import',
+                overwriteModeDescription: 'Clear existing data before importing. This action cannot be undone, please proceed with caution.',
+              },
+            },
       webdav: {
         title: 'WebDAV Configuration',
         serverUrl: 'Server URL',

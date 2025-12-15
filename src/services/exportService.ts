@@ -6,11 +6,13 @@ import { db } from '@/db/schema';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
+import { importService, } from './importService';
+import type { ImportOptions, ImportProgressCallback } from '@/types/import';
 
 export class ExportService {
-/**
- * 导出单个项目为 JSON
- */
+  /**
+   * 导出单个项目为 JSON
+   */
   async exportProjectAsJSON(projectId: string): Promise<void> {
     const project = await db.projects.get(projectId);
     const versions = await db.versions.where('projectId').equals(projectId).toArray();
@@ -18,7 +20,7 @@ export class ExportService {
 
     // 清理版本数据，移除运行时计算的字段
     const cleanVersions = versions.map(({ normalizedContent, ...version }) => version);
-    
+
     // 清理附件数据，移除 blob 字段（因为 JSON 无法序列化 Blob）
     const cleanAttachments = attachments.map(({ blob, isMissing, ...attachment }) => ({
       ...attachment,
@@ -38,9 +40,9 @@ export class ExportService {
     saveAs(blob, `${project?.name || 'project'}_${Date.now()}.json`);
   }
 
-/**
- * 导出所有数据为 ZIP
- */
+  /**
+   * 导出所有数据为 ZIP
+   */
   async exportAllAsZip(): Promise<void> {
     const zip = new JSZip();
 
@@ -52,7 +54,7 @@ export class ExportService {
 
     // 清理版本数据，移除运行时计算的字段
     const cleanVersions = versions.map(({ normalizedContent, ...version }) => version);
-    
+
     // 清理附件数据，移除 blob 字段
     const cleanAttachments = attachments.map(({ blob, isMissing, ...attachment }) => ({
       ...attachment,
@@ -74,7 +76,7 @@ export class ExportService {
           // 获取文件扩展名
           const fileExtension = ExportService.getFileExtension(attachment.fileType, attachment.fileName);
           const fileName = `${attachment.id}${fileExtension}`;
-          
+
           // 将 Blob 转换为 ArrayBuffer
           const arrayBuffer = await attachment.blob.arrayBuffer();
           attachmentsFolder.file(fileName, arrayBuffer);
@@ -96,7 +98,7 @@ export class ExportService {
     if (canvasRatio !== null) settings[STORAGE_KEYS.CANVAS_RATIO] = canvasRatio;
     if (editorHeightRatio !== null) settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] = editorHeightRatio;
     if (sidebarCollapsed !== null) settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] = sidebarCollapsed;
-    
+
     zip.file('settings.json', JSON.stringify(settings, null, 2));
 
     zip.file('metadata.json', JSON.stringify({
@@ -115,9 +117,9 @@ export class ExportService {
     saveAs(blob, `prompt-studio-backup-${Date.now()}.zip`);
   }
 
-/**
- * 根据 MIME 类型或原始文件名获取文件扩展名
- */
+  /**
+   * 根据 MIME 类型或原始文件名获取文件扩展名
+   */
   private static getFileExtension(mimeType: string, originalFileName: string = ''): string {
     // 首先尝试从原始文件名中提取扩展名
     if (originalFileName && originalFileName.includes('.')) {
@@ -127,7 +129,7 @@ export class ExportService {
         return `.${ext}`;
       }
     }
-    
+
     // 如果没有原始扩展名或扩展名不符合预期，则根据 MIME 类型推断
     const mimeToExt: { [key: string]: string } = {
       'image/jpeg': '.jpg',
@@ -145,130 +147,55 @@ export class ExportService {
       'text/html': '.html',
       'application/json': '.json',
     };
-    
+
     return mimeToExt[mimeType] || '.bin';
   }
 
-/**
- * 导入 JSON 数据
- */
-  async importFromJSON(file: File): Promise<void> {
+  /**
+   * 导入 JSON 数据（使用新的导入服务）
+   */
+  async importFromJSON(
+    file: File,
+    options: ImportOptions,
+    onProgress?: ImportProgressCallback
+  ): Promise<void> {
     const text = await file.text();
     const data = JSON.parse(text);
 
+    // 使用新的导入服务，将 JSON 数据转换为 ZIP 格式
+    const zip = new JSZip();
+
     if (data.project) {
-      await db.projects.put(data.project);
+      zip.file('projects.json', JSON.stringify([data.project], null, 2));
     }
     if (data.versions) {
       // 确保版本数据不包含 normalizedContent 字段
       const cleanVersions = data.versions.map(({ normalizedContent, ...version }: any) => version);
-      await db.versions.bulkPut(cleanVersions);
+      zip.file('versions.json', JSON.stringify(cleanVersions, null, 2));
     }
     if (data.attachments) {
-      await db.attachments.bulkPut(data.attachments);
+      zip.file('attachments.json', JSON.stringify(data.attachments, null, 2));
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const zipFile = new File([blob], 'import.zip', { type: 'application/zip' });
+
+    const result = await importService.importFromZip(zipFile, options, onProgress);
+    if (!result.success) {
+      throw new Error(result.message);
     }
   }
-
-/**
- * 导入 ZIP 备份
- */
-  async importFromZip(file: File): Promise<void> {
-    const zip = await JSZip.loadAsync(file);
-
-    const projectsFile = zip.file('projects.json');
-    const foldersFile = zip.file('folders.json');
-    const versionsFile = zip.file('versions.json');
-    const snippetsFile = zip.file('snippets.json');
-    const attachmentsFile = zip.file('attachments.json');
-    const settingsFile = zip.file('settings.json');
-
-    // 处理项目数据
-    if (projectsFile) {
-      const projects = JSON.parse(await projectsFile.async('text'));
-      await db.projects.bulkPut(projects);
-    }
-
-    // 处理文件夹数据
-    if (foldersFile) {
-      const folders = JSON.parse(await foldersFile.async('text'));
-      await db.folders.bulkPut(folders);
-    }
-
-    // 处理版本数据
-    if (versionsFile) {
-      const versions = JSON.parse(await versionsFile.async('text'));
-      const cleanVersions = versions.map(({ normalizedContent, ...version }: any) => version);
-      await db.versions.bulkPut(cleanVersions);
-    }
-
-    // 处理代码片段数据
-    if (snippetsFile) {
-      const snippets = JSON.parse(await snippetsFile.async('text'));
-      await db.snippets.bulkPut(snippets);
-    }
-
-    // 处理附件数据和文件
-    if (attachmentsFile) {
-      const attachments = JSON.parse(await attachmentsFile.async('text'));
-      const attachmentsFolder = zip.folder('attachments');
-      
-      // 为每个附件处理文件数据
-      const processedAttachments = await Promise.all(
-        attachments.map(async (attachment: any) => {
-          // 初始化附件对象
-          const processedAttachment: any = {
-            ...attachment,
-            isMissing: true, // 默认标记为缺失，直到找到文件
-          };
-
-          // 尝试从附件文件夹中查找对应的文件
-          if (attachmentsFolder) {
-            // 查找可能的文件名（根据附件ID和扩展名）
-            const fileExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', 
-                                   '.mp4', '.webm', '.mov', '.pdf', '.txt', '.html', '.json', '.bin'];
-            
-            for (const ext of fileExtensions) {
-              const fileName = `${attachment.id}${ext}`;
-              const file = attachmentsFolder.file(fileName);
-              
-              if (file) {
-                try {
-                  // 获取文件内容并创建 Blob
-                  const arrayBuffer = await file.async('arraybuffer');
-                  processedAttachment.blob = new Blob([arrayBuffer], { type: attachment.fileType });
-                  processedAttachment.isMissing = false; // 找到文件，标记为未缺失
-                  break; // 找到文件后停止搜索
-                } catch (error) {
-                  console.warn(`Failed to load attachment file: ${fileName}`, error);
-                }
-              }
-            }
-          }
-          
-          return processedAttachment;
-        })
-      );
-      
-      await db.attachments.bulkPut(processedAttachments);
-    }
-
-    // 处理设置数据
-    if (settingsFile) {
-      const settings = JSON.parse(await settingsFile.async('text'));
-      // 恢复 WebDAV 配置
-      if (settings[STORAGE_KEYS.WEBDAV_CONFIG]) {
-        storage.set(STORAGE_KEYS.WEBDAV_CONFIG, settings[STORAGE_KEYS.WEBDAV_CONFIG]);
-      }
-      // 恢复布局设置
-      if (settings[STORAGE_KEYS.CANVAS_RATIO] !== undefined) {
-        storage.set(STORAGE_KEYS.CANVAS_RATIO, settings[STORAGE_KEYS.CANVAS_RATIO]);
-      }
-      if (settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] !== undefined) {
-        storage.set(STORAGE_KEYS.EDITOR_HEIGHT_RATIO, settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO]);
-      }
-      if (settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] !== undefined) {
-        storage.set(STORAGE_KEYS.SIDEBAR_COLLAPSED, settings[STORAGE_KEYS.SIDEBAR_COLLAPSED]);
-      }
+  /**
+   * 导入 ZIP 备份（使用新的导入服务）
+   */
+  async importFromZip(
+    file: File,
+    options: ImportOptions,
+    onProgress?: ImportProgressCallback
+  ): Promise<void> {
+    const result = await importService.importFromZip(file, options, onProgress);
+    if (!result.success) {
+      throw new Error(result.message);
     }
   }
 }

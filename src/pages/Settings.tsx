@@ -6,10 +6,10 @@ import { useProjectStore } from '@/store/projectStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Modal } from '@/components/common/Modal';
+import { ImportModeDialog } from '@/components/common/ImportModeDialog';
 import { Icons } from '@/components/icons/Icons';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { useTranslation } from '@/i18n/I18nContext';
-
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const t = useTranslation();
@@ -26,7 +26,9 @@ const Settings: React.FC = () => {
   >([]);
   const [loading, setLoading] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-
+  const [showImportModeDialog, setShowImportModeDialog] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+  const [pendingRestorePath, setPendingRestorePath] = useState<string | null>(null);
   useEffect(() => {
     // 从 localStorage 加载配置
     const config = storage.get<WebDAVConfig | null>(STORAGE_KEYS.WEBDAV_CONFIG, null);
@@ -110,23 +112,32 @@ const Settings: React.FC = () => {
   };
 
   const handleRestore = async (remotePath: string) => {
+    // 设置待处理的恢复路径并显示模式选择对话框
+    setPendingRestorePath(remotePath);
+    setShowImportModeDialog(true);
+  };
+
+  const handleRestoreWithMode = async (mode: 'merge' | 'overwrite') => {
+    if (!pendingRestorePath) return;
+
     if (!confirm(t('pages.settings.webdav.confirmRestore'))) {
       return;
     }
 
     setShowRestoreModal(false);
+    setShowImportModeDialog(false);
     setLoading(true);
     try {
-      await webdavService.restoreFromWebDAV(remotePath);
+      await webdavService.restoreFromWebDAV(pendingRestorePath, { mode });
       alert(t('pages.settings.webdav.restoreSuccess'));
       window.location.reload();
     } catch (error) {
       alert(`${t('pages.settings.webdav.restoreFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`);
     } finally {
       setLoading(false);
+      setPendingRestorePath(null);
     }
   };
-
   const handleDeleteBackup = async (remotePath: string) => {
     if (!confirm(t('pages.settings.webdav.confirmDelete'))) {
       return;
@@ -161,26 +172,54 @@ const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      if (file.name.endsWith('.zip')) {
-        await exportService.importFromZip(file);
-      } else if (file.name.endsWith('.json')) {
-        await exportService.importFromJSON(file);
-      } else {
-        alert(t('pages.settings.local.unsupportedFormat'));
-        return;
+    // 设置待处理的文件并显示模式选择对话框
+    setPendingImportFile(file);
+    setShowImportModeDialog(true);
+  };
+
+  const handleImportWithMode = async (mode: 'merge' | 'overwrite') => {
+    // 处理文件导入
+    if (pendingImportFile) {
+      try {
+        if (pendingImportFile.name.endsWith('.zip')) {
+          await exportService.importFromZip(pendingImportFile, { mode });
+        } else if (pendingImportFile.name.endsWith('.json')) {
+          await exportService.importFromJSON(pendingImportFile, { mode });
+        } else {
+          alert(t('pages.settings.local.unsupportedFormat'));
+          return;
+        }
+
+        // 刷新数据而不是重新加载页面
+        await loadFolders();
+        await loadProjects();
+
+        alert(t('pages.settings.local.importSuccess'));
+      } catch (error) {
+        alert(`${t('pages.settings.local.importFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`);
+      } finally {
+        // 清理状态
+        setShowImportModeDialog(false);
+        setPendingImportFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
-      
-      // 刷新数据而不是重新加载页面
-      await loadFolders();
-      await loadProjects();
-      
-      alert(t('pages.settings.local.importSuccess'));
-    } catch (error) {
-      alert(`${t('pages.settings.local.importFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`);
+    }
+    // 处理WebDAV恢复
+    else if (pendingRestorePath) {
+      await handleRestoreWithMode(mode);
     }
   };
 
+  const handleCancelImportMode = () => {
+    setShowImportModeDialog(false);
+    setPendingImportFile(null);
+    setPendingRestorePath(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
@@ -328,7 +367,7 @@ const Settings: React.FC = () => {
             </p>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-                {backups.map((backup) => (
+              {backups.map((backup) => (
                 <div
                   key={backup.path}
                   className="flex items-center justify-between p-4 bg-surface-containerHighest rounded-m3-medium hover:bg-surface-containerHigh transition-colors"
@@ -361,6 +400,13 @@ const Settings: React.FC = () => {
           )}
         </div>
       </Modal>
+
+      {/* 导入模式选择对话框 */}
+      <ImportModeDialog
+        open={showImportModeDialog}
+        onClose={handleCancelImportMode}
+        onConfirm={handleImportWithMode}
+      />
     </div>
   );
 };
