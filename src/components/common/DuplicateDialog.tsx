@@ -58,34 +58,46 @@ export function DuplicateDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 animate-in fade-in zoom-in duration-200">
+      <div className="bg-surface dark:bg-surface-dark text-surface-onSurface dark:text-surface-onSurfaceDark rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 animate-in fade-in zoom-in duration-200">
         {/* 图标和标题 */}
         <div className="flex items-center gap-3 mb-4">
           <Icons.Warning className="w-8 h-8 text-amber-500" />
-          <h2 className="text-xl font-bold text-gray-900">检测到重复内容</h2>
+          <h2 className="text-xl font-bold">检测到重复内容</h2>
         </div>
 
         {/* 内容 */}
         <div className="mb-6">
-          <p className="text-gray-700 mb-3">已存在相同内容的版本:</p>
+          <p className="text-surface-onVariant dark:text-surface-onVariantDark mb-3">
+            已存在相同内容的版本:
+          </p>
 
-          <div className="bg-gray-100 rounded-xl p-4 border border-gray-200">
+          <div className="bg-surface-variant dark:bg-surface-variantDark rounded-xl p-4 border border-border dark:border-border-dark">
             <p className="text-sm mb-1">
-              <span className="font-semibold text-gray-900">版本 ID:</span>{' '}
-              <span className="text-gray-700 font-mono">{duplicateVersion.id.slice(0, 8)}</span>
+              <span className="font-semibold text-surface-onSurface dark:text-surface-onSurfaceDark">
+                版本 ID:
+              </span>{' '}
+              <span className="text-surface-onVariant dark:text-surface-onVariantDark font-mono">
+                {duplicateVersion.id.slice(0, 8)}
+              </span>
             </p>
-            <p className="text-sm text-gray-600">创建于 {formatDate(duplicateVersion.createdAt)}</p>
+            <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+              创建于 {formatDate(duplicateVersion.createdAt)}
+            </p>
             {duplicateVersion.score !== undefined && (
-              <p className="text-sm text-gray-600 mt-1">评分: {duplicateVersion.score}/5</p>
+              <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
+                评分: {duplicateVersion.score}/5
+              </p>
             )}
           </div>
 
-          <p className="text-sm text-gray-600 mt-4">是否仍要创建新版本?</p>
+          <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-4">
+            是否仍要创建新版本?
+          </p>
         </div>
 
         {/* 按钮 */}

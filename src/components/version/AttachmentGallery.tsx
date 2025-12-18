@@ -130,20 +130,22 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const isVideo = (type: string) => type.startsWith('video/');
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap gap-3">
+    <div className="w-full @container">
+      {/* 使用 CSS Grid 实现响应式正方形卡片布局 */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3">
         {/* Upload Box */}
         {!readonly && (
           <div
             className={`
-              w-25 h-25 sm:w-32 sm:h-32 flex-shrink-0
+              w-full h-full aspect-square
               border-2 border-dashed rounded-xl
               transition-all duration-200 cursor-pointer
               flex flex-col items-center justify-center text-center
               group
-              ${isDragging
-                ? 'border-primary bg-primary/5'
-                : 'border-border dark:border-border-dark bg-surface dark:bg-surface-dark hover:border-primary hover:bg-primary/5'
+              ${
+                isDragging
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border dark:border-border-dark bg-surface dark:bg-surface-dark hover:border-primary hover:bg-primary/5'
               }
             `}
             onDrop={handleDrop}
@@ -188,15 +190,16 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2 }}
               className={`
-                relative group w-25 h-25 sm:w-32 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden border border-border dark:border-border-dark
+                relative group w-full h-full aspect-square rounded-xl overflow-hidden border border-border dark:border-border-dark
                 shadow-sm hover:shadow-md transition-all bg-background dark:bg-zinc-800
                 ${attachment.isMissing ? 'border-error/50' : ''}
               `}
             >
               {/* Main Content Area - Click to Preview */}
               <div
-                className={`w-full h-full ${attachment.isMissing ? 'cursor-not-allowed' : 'cursor-pointer'
-                  }`}
+                className={`w-full h-full ${
+                  attachment.isMissing ? 'cursor-not-allowed' : 'cursor-pointer'
+                }`}
                 onClick={() =>
                   !attachment.isMissing && isImage(attachment.fileType) && handlePreview(attachment)
                 }

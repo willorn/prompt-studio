@@ -35,7 +35,7 @@ export const Modal: React.FC<ModalProps> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/30" />
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -50,12 +50,12 @@ export const Modal: React.FC<ModalProps> = ({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel
-                className={`transform overflow-hidden rounded-m3-large bg-surface shadow-m3-3 transition-all ${sizeClasses[size]}`}
+                className={`transform overflow-hidden rounded-m3-large bg-surface dark:bg-surface-dark text-surface-onSurface dark:text-surface-onSurfaceDark shadow-m3-3 transition-all ${sizeClasses[size]}`}
               >
                 {title && (
                   <Dialog.Title
                     as="h3"
-                    className="text-xl font-semibold px-6 py-4 border-b border-surface-variant"
+                    className="text-xl font-semibold px-6 py-4 border-b border-surface-variant dark:border-border-dark"
                   >
                     {title}
                   </Dialog.Title>

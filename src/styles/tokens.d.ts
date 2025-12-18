@@ -3,22 +3,30 @@ declare const colors: {
     DEFAULT: string;
     hover: string;
     container: string;
+    containerDark: string;
     onPrimary: string;
     onContainer: string;
+    onContainerDark: string;
     selection: string;
     editorBackground: string;
-    diffInserted: string;
   };
   surface: {
     DEFAULT: string;
-    dark: string;
     variant: string;
     onSurface: string;
     onVariant: string;
+    dark: string;
+    variantDark: string;
+    onSurfaceDark: string;
+    onVariantDark: string;
     container: string;
+    containerDark: string;
     containerLow: string;
+    containerLowDark: string;
     containerHigh: string;
+    containerHighDark: string;
     containerHighest: string;
+    containerHighestDark: string;
   };
   background: {
     DEFAULT: string;
@@ -31,8 +39,9 @@ declare const colors: {
   error: {
     DEFAULT: string;
     container: string;
+    containerDark: string;
     onContainer: string;
-    diffRemoved: string;
+    onContainerDark: string;
   };
   text: {
     light: {

@@ -118,7 +118,7 @@ const ProjectItem: React.FC<ProjectItemProps> = ({
           size={16}
           className={`flex-shrink-0 ${isSelected ? 'text-primary' : 'text-surface-onVariant'}`}
         />
-        <span className="truncate flex-1">{project.name}</span>
+        <span className="truncate flex-1 text-text-light-primary/80 dark:text-text-dark-primary/80">{project.name}</span>
         {project.tags && project.tags.model && (
           <span className="text-[10px] px-1.5 py-0.5 bg-background dark:bg-zinc-800 rounded border border-border dark:border-border-dark text-surface-onVariant opacity-70">
             {project.tags.model}
@@ -228,8 +228,8 @@ const FolderItem: React.FC<TreeItemProps> = ({
         <span className="flex-shrink-0 text-surface-onVariant">
           {isExpanded ? <Icons.FolderOpen size={16} /> : <Icons.Folder size={16} />}
         </span>
-        <span className="flex-1 truncate">{folder.name}</span>
-        <span className="text-xs opacity-50">{getAllProjectsCount}</span>
+        <span className="flex-1 truncate text-text-light-primary dark:text-text-dark-primary">{folder.name}</span>
+        <span className="text-xs text-text-light-primary/70 dark:text-text-dark-primary/70">{getAllProjectsCount}</span>
       </div>
 
       {isExpanded && (
@@ -252,7 +252,7 @@ const FolderItem: React.FC<TreeItemProps> = ({
               project={project}
               level={level + 1}
               onCloseAllMenus={onCloseAllMenus}
-              onContextMenu={(e, item) => onContextMenu(e, item as any)}
+              onContextMenu={(e, item) => onContextMenu(e, item)}
             />
           ))}
         </div>
@@ -273,7 +273,7 @@ const ProjectItemConnected: React.FC<{
     <ProjectItem
       project={project}
       level={level}
-      onContextMenu={(e, p) => onContextMenu(e, p as any)}
+      onContextMenu={(e, p) => onContextMenu(e, p)}
       isSelected={currentProjectId === project.id}
       onSelect={selectProject}
       onCloseAllMenus={onCloseAllMenus}

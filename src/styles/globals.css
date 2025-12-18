@@ -9,23 +9,9 @@
 }
 
 body {
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    'Roboto',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: theme('colors.background.DEFAULT');
-  color: theme('colors.surface.onSurface');
-}
-
-/* Dark mode overrides applied via class usually, but keeping simple defaults here */
-.dark body {
-  background-color: theme('colors.background.dark');
-  color: #f4f4f5;
+  /* 使用 @apply 应用 Tailwind 类，支持暗色模式 */
+  @apply bg-background text-surface-onSurface transition-colors duration-200;
+  @apply dark:bg-background-dark dark:text-surface-onSurfaceDark;
 }
 
 #root {
@@ -47,25 +33,6 @@ body {
   }
 }
 
-/* CodeMirror Theme Customization */
-.cm-editor {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.cm-content {
-  caret-color: theme('colors.primary.DEFAULT');
-}
-
-.cm-cursor {
-  border-left-color: theme('colors.primary.DEFAULT');
-}
-
-.cm-selectionBackground {
-  background-color: theme('colors.primary.selection') !important;
-}
-
 /* Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 8px;
@@ -77,26 +44,24 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8; /* Fallback */
-  background: theme('colors.scrollbar.thumb', #d4d4d8);
+  background-color: theme('colors.scrollbar.thumb');
   border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #52525b; /* Fallback */
-  background: theme('colors.scrollbar.thumbDark', #52525b);
+  background-color: theme('colors.scrollbar.thumbDark');
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa; /* Fallback */
-  background: theme('colors.scrollbar.thumbHover', #a1a1aa);
+  background-color: theme('colors.scrollbar.thumbHover');
 }
 
 /* Monaco Editor Scrollbar Styles */
 .monaco-scrollable-element > .scrollbar > .slider {
   border-radius: 4px;
-  background: theme('colors.scrollbar.thumb', #d4d4d8) !important;
+  background: theme('colors.scrollbar.thumb') !important;
 }
+
 .dark .monaco-scrollable-element > .scrollbar > .slider {
-  background: theme('colors.scrollbar.thumbDark', #52525b) !important;
+  background: theme('colors.scrollbar.thumbDark') !important;
 }

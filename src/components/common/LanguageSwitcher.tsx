@@ -18,7 +18,7 @@ export const LanguageSwitcher: React.FC = () => {
     <MinimalButton
       variant="ghost"
       onClick={toggleLocale}
-      className="flex items-center gap-2 px-3 py-2 text-white/90 hover:text-white hover:bg-white/10"
+      className="flex items-center gap-2 px-3 py-2 !text-white/90 !hover:text-white hover:bg-white/10"
       title={t('common.switchLanguage')}
       aria-label={t('common.switchLanguage')}
     >

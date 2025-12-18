@@ -9,8 +9,8 @@ interface SettingsState {
   setWebdavConfig: (url: string, username: string, password: string) => void;
 
   // Theme
-  theme: 'light' | 'dark' | 'auto';
-  setTheme: (theme: 'light' | 'dark' | 'auto') => void;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
 
   // Editor
   editorFontSize: number;
@@ -27,7 +27,7 @@ export const useSettingsStore = create<SettingsState>()(
       setWebdavConfig: (url, username, password) =>
         set({ webdavUrl: url, webdavUsername: username, webdavPassword: password }),
 
-      theme: 'auto',
+      theme: 'light',
       setTheme: (theme) => set({ theme }),
 
       editorFontSize: 14,

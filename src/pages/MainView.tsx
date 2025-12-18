@@ -18,6 +18,7 @@ import { DuplicateDialog } from '@/components/common/DuplicateDialog';
 import { ResizableSplitter } from '@/components/common/ResizableSplitter';
 import { VerticalResizableSplitter } from '@/components/common/VerticalResizableSplitter';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Icons } from '@/components/icons/Icons';
 
 const MainView: React.FC = () => {
@@ -268,13 +269,14 @@ const MainView: React.FC = () => {
   return (
     <div className="h-dynamic-screen flex flex-col bg-background dark:bg-background-dark text-surface-onSurface transition-colors duration-200">
       {/* 顶部标题栏 - Updated Style */}
-      <header className="h-14 bg-primary text-white px-6 shrink-0 shadow-md z-20 flex items-center justify-between">
+      <header className="h-12 bg-primary text-white px-6 shrink-0 shadow-md z-20 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img src="/icon-192.svg" className="h-8 w-8" alt="logo" />
           <h1 className="text-lg font-bold tracking-wide hidden sm:inline">Prompt Studio</h1>
         </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <ThemeToggle />
 
           <a
             href="https://github.com/JoeyLearnsToCode/prompt-studio"
@@ -289,7 +291,7 @@ const MainView: React.FC = () => {
           <MinimalButton
             variant="ghost"
             onClick={() => navigate('/settings')}
-            className="h-9 w-9 text-white/90 hover:text-white hover:bg-white/10"
+            className="h-9 w-9 !text-white/90 !hover:text-white hover:bg-white/10"
             aria-label={t('common.settings')}
           >
             <Icons.Settings className="h-5 w-5" />

@@ -7,6 +7,7 @@ import { SearchBar } from '@/components/canvas/SearchBar';
 import { useVersionSearch } from '@/hooks/useVersionSearch';
 import { Icons } from '@/components/icons/Icons';
 import { useTranslation } from '@/i18n/I18nContext';
+import { useSettingsStore } from '@/store/settingsStore';
 
 interface VersionCanvasProps {
   projectId: string | null;
@@ -22,6 +23,7 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   isCollapsed = false,
 }) => {
   const t = useTranslation();
+  const { theme } = useSettingsStore();
 
   // 对比模式下的处理函数
   const handleCompare = () => {
@@ -167,6 +169,30 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
     };
   }, [projectId]); // 依赖projectId,在项目选中后初始化
 
+  // 监听主题和 DOM class 变化更新 Canvas 颜色
+  useEffect(() => {
+    const updateCanvasTheme = () => {
+      if (rendererRef.current) {
+        rendererRef.current.updateThemeColors();
+        rendererRef.current.draw();
+      }
+    };
+
+    // 初始更新
+    updateCanvasTheme();
+
+    // 监听 DOM class 变化（用于自动模式）
+    const observer = new MutationObserver(() => {
+      updateCanvasTheme();
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, [theme]); // 当 theme store 或 DOM 变化时触发
+
   // 使用ref保存最新的onNodeClick
   useEffect(() => {
     onNodeClickRef.current = onNodeClick;
@@ -306,23 +332,6 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
 
       {/* Top Left Control Overlay - 浮动层，不遮挡Canvas */}
       <div className="absolute top-4 left-4 z-999 flex flex-col gap-3 pointer-events-none max-w-[80%]">
-        {/* Search Bar - 仅内容响应鼠标事件 */}
-        {searchVisible && (
-          <div className="pointer-events-auto shadow-lg rounded-lg">
-            <SearchBar
-              ref={searchInputRef}
-              query={query}
-              currentIndex={currentIndex}
-              total={total}
-              onQueryChange={handleQueryChange}
-              onNext={handleNext}
-              onPrev={handlePrev}
-              onClear={handleClear}
-              onClose={handleCloseSearch}
-            />
-          </div>
-        )}
-
         {/* Action Buttons - 仅内容响应鼠标事件 */}
         {selectedVersionId && (
           <div className="flex gap-2 pointer-events-auto">
@@ -353,11 +362,29 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
             </MinimalButton>
           </div>
         )}
+
+        {/* Search Bar - 仅内容响应鼠标事件 */}
+        {searchVisible && (
+          <div className="pointer-events-auto shadow-lg rounded-lg">
+            <SearchBar
+              ref={searchInputRef}
+              query={query}
+              currentIndex={currentIndex}
+              total={total}
+              onQueryChange={handleQueryChange}
+              onNext={handleNext}
+              onPrev={handlePrev}
+              onClear={handleClear}
+              onClose={handleCloseSearch}
+            />
+          </div>
+        )}
       </div>
 
       {/* Bottom Right Control Overlay - Floating Group Style */}
       <div className="absolute bottom-4 right-4 z-999 pointer-events-none">
-        <div className="pointer-events-auto flex flex-col @xs:flex-row gap-1 p-1 bg-surface-variant dark:bg-zinc-800 rounded-xl shadow-card border border-transparent backdrop-blur-sm">
+        {/* 修复：暗色模式下使用 surface-container-high-dark 以区别于画布背景 */}
+        <div className="pointer-events-auto flex flex-col @xs:flex-row gap-1 p-1 bg-surface-variant dark:bg-surface-containerHighDark rounded-xl shadow-card border border-transparent backdrop-blur-sm">
           <MinimalButton
             variant="ghost"
             onClick={handleZoomIn}

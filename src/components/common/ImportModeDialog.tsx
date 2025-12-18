@@ -28,15 +28,13 @@ export const ImportModeDialog: React.FC<ImportModeDialogProps> = ({ open, onClos
           {/* 这里保留大按钮样式，因为 MinimalButton 不适合承载复杂的内部布局 */}
           <button
             onClick={handleMerge}
-            className="w-full text-left p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            className="w-full text-left p-4 border border-border dark:border-border-dark rounded-lg hover:bg-surface-variant dark:hover:bg-surface-variantDark focus:outline-none focus:ring-2 focus:ring-primary transition-colors text-surface-onSurface dark:text-surface-onSurfaceDark"
             autoFocus
           >
             <div className="flex items-start space-x-3">
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {t('pages.settings.local.importMode.mergeMode')}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <h3 className="font-semibold">{t('pages.settings.local.importMode.mergeMode')}</h3>
+                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
                   {t('pages.settings.local.importMode.mergeModeDescription')}
                 </p>
               </div>
@@ -45,14 +43,14 @@ export const ImportModeDialog: React.FC<ImportModeDialogProps> = ({ open, onClos
 
           <button
             onClick={handleOverwrite}
-            className="w-full text-left p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-error transition-colors"
+            className="w-full text-left p-4 border border-border dark:border-border-dark rounded-lg hover:bg-surface-variant dark:hover:bg-surface-variantDark focus:outline-none focus:ring-2 focus:ring-error transition-colors text-surface-onSurface dark:text-surface-onSurfaceDark"
           >
             <div className="flex items-start space-x-3">
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
+                <h3 className="font-semibold">
                   {t('pages.settings.local.importMode.overwriteMode')}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
                   {t('pages.settings.local.importMode.overwriteModeDescription')}
                 </p>
               </div>

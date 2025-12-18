@@ -257,7 +257,7 @@ const Settings: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-background dark:bg-background-dark text-surface-onSurface overflow-hidden">
       {/* 头部 */}
-      <header className="h-14 bg-primary text-white flex items-center justify-between px-6 shrink-0 shadow-md z-20">
+      <header className="h-12 bg-primary text-white flex items-center justify-between px-6 shrink-0 shadow-md z-20">
         <div className="flex items-center gap-2">
           <Icons.Settings className="text-2xl" />
           <h1 className="text-lg font-bold tracking-wide">{t('pages.settings.title')}</h1>
@@ -265,7 +265,7 @@ const Settings: React.FC = () => {
         <MinimalButton
           variant="ghost"
           onClick={() => navigate('/')}
-          className="h-9 w-9 text-white/90 hover:text-white hover:bg-white/10"
+          className="h-9 w-9 !text-white/90 !hover:text-white hover:bg-white/10"
           title={t('common.back')}
         >
           <Icons.ArrowLeft className="h-6 w-6" />
@@ -282,10 +282,10 @@ const Settings: React.FC = () => {
                 <span className="material-symbols-outlined text-2xl">folder_zip</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-surface-onSurface">
+                <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
                   {t('pages.settings.local.title')}
                 </h2>
-                <p className="text-sm text-surface-onVariant mt-1">
+                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
                   {t('pages.settings.local.description')}
                 </p>
               </div>
@@ -324,10 +324,10 @@ const Settings: React.FC = () => {
                 <span className="material-symbols-outlined text-2xl">cloud_sync</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-surface-onSurface">
+                <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
                   {t('pages.settings.webdav.title')}
                 </h2>
-                <p className="text-sm text-surface-onVariant mt-1">
+                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
                   {t('pages.settings.webdav.description')}
                 </p>
               </div>
@@ -339,14 +339,14 @@ const Settings: React.FC = () => {
                 placeholder="https://example.com/webdav"
                 value={webdavConfig.url}
                 onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
-                className="bg-background dark:bg-zinc-900 border-border dark:border-border-dark focus:border-transparent focus:ring-2 focus:ring-primary"
+                className="focus:border-transparent focus:ring-2 focus:ring-primary"
               />
               <Input
                 label={t('pages.settings.webdav.username')}
                 placeholder="username"
                 value={webdavConfig.username}
                 onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
-                className="bg-background dark:bg-zinc-900 border-border dark:border-border-dark focus:border-transparent focus:ring-2 focus:ring-primary"
+                className="focus:border-transparent focus:ring-2 focus:ring-primary"
               />
               <Input
                 label={t('pages.settings.webdav.password')}
@@ -354,7 +354,7 @@ const Settings: React.FC = () => {
                 placeholder="password"
                 value={webdavConfig.password}
                 onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
-                className="bg-background dark:bg-zinc-900 border-border dark:border-border-dark focus:border-transparent focus:ring-2 focus:ring-primary"
+                className="focus:border-transparent focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -430,10 +430,10 @@ const Settings: React.FC = () => {
                   className="flex items-center justify-between p-4 bg-surface-container-high dark:bg-zinc-800 rounded-lg hover:bg-surface-variant dark:hover:bg-zinc-700 transition-colors"
                 >
                   <div className="flex-1 min-w-0 mr-4">
-                    <p className="text-sm font-medium truncate text-surface-onSurface">
+                    <p className="text-sm font-medium truncate text-surface-onSurface dark:text-surface-onSurfaceDark">
                       {backup.name}
                     </p>
-                    <p className="text-xs text-surface-onVariant mt-1">
+                    <p className="text-xs text-surface-onVariant dark:text-surface-onVariantDark mt-1">
                       {formatDate(backup.lastMod)} • {formatFileSize(backup.size)}
                     </p>
                   </div>

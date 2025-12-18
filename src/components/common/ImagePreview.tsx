@@ -46,7 +46,6 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     };
   }, [isOpen, onClose, onPrev, onNext, hasPrev, hasNext]);
 
-  console.log(`${hasPrev} ${hasNext}`)
   return (
     <AnimatePresence>
       {isOpen && imageUrl && (
@@ -112,7 +111,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               src={imageUrl}
               alt={fileName || '预览'}
               className="max-w-full max-h-full object-contain shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             />
           </div>
         </motion.div>

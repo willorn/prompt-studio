@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from 'react';
 import { initializeSampleData } from '@/services/initializeSampleData';
 import { useProjectStore } from '@/store/projectStore';
 import { useVersionStore } from '@/store/versionStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 
 interface AppInitializerProps {
@@ -17,9 +18,24 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { loadProjects, setCurrentProject, loadFolders } = useProjectStore();
   const { loadVersions } = useVersionStore();
+  const { theme } = useSettingsStore();
 
   // 使用 ref 确保初始化只执行一次（防止 React 18 严格模式下的双重调用）
   const hasInitialized = useRef(false);
+
+  // 主题管理
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const applyTheme = (isDark: boolean) => {
+      if (isDark) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    };
+
+    applyTheme(theme === 'dark');
+  }, [theme]);
 
   useEffect(() => {
     // 如果已经初始化过，直接返回

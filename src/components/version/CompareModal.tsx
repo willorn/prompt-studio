@@ -82,7 +82,7 @@ export function CompareModal({
     const surfaceColor = isDark ? colors.surface.dark : colors.surface.DEFAULT;
     const textColor = isDark ? colors.text.dark.primary : colors.text.light.primary;
     const lineNumberColor = isDark ? colors.text.dark.muted : colors.text.light.muted;
-    const gutterColor = isDark ? colors.surface.dark : colors.surface.variant;
+    const gutterColor = isDark ? colors.surface.variantDark : colors.surface.variant;
 
     monaco.editor.defineTheme('prompt-studio-diff-theme', {
       base: isDark ? 'vs-dark' : 'vs',
@@ -102,9 +102,6 @@ export function CompareModal({
         'editorLineNumber.foreground': lineNumberColor,
         'editorGutter.background': gutterColor,
         'editor.lineHighlightBackground': colors.primary.editorBackground,
-        // Diff 特有颜色优化
-        'diffEditor.insertedTextBackground': colors.primary.diffInserted, // 使用 Primary 色的透明度作为新增背景
-        'diffEditor.removedTextBackground': colors.error.diffRemoved, // 使用 Error 色的透明度作为删除背景
       },
     });
     monaco.editor.setTheme('prompt-studio-diff-theme');
@@ -117,11 +114,13 @@ export function CompareModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-[95vw] h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="w-[95vw] h-[90vh] bg-surface dark:bg-surface-dark rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="p-6 border-b border-gray-200 flex-shrink-0">
+        <header className="p-6 border-b border-border dark:border-border-dark flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">{modalTitle}</h2>
+            <h2 className="text-2xl font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+              {modalTitle}
+            </h2>
             <MinimalButton
               variant="ghost"
               onClick={onClose}
@@ -135,11 +134,11 @@ export function CompareModal({
           {/* 相似度指示器 */}
           {sourceVersion && targetVersion && (
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
                 {t('components.compareModal.similarity')}:
               </span>
               <span className="font-bold text-blue-600">{similarity}%</span>
-              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden ml-2">
+              <div className="flex-1 h-2 bg-surface-variant dark:bg-surface-variantDark rounded-full overflow-hidden ml-2">
                 <div
                   className="h-full bg-blue-600 transition-all duration-300"
                   style={{ width: `${similarity}%` }}
@@ -152,10 +151,10 @@ export function CompareModal({
           {sourceVersion && targetVersion && (
             <div className="mt-4 grid grid-cols-2 gap-4">
               <div>
-                <h3 className="font-medium text-gray-900">
+                <h3 className="font-medium text-surface-onSurface dark:text-surface-onSurfaceDark">
                   {sourceVersion.name || `版本 ${sourceVersion.id.slice(0, 8)}`}
                 </h3>
-                <div className="text-xs text-gray-600 mt-1 space-y-1">
+                <div className="text-xs text-surface-onVariant dark:text-surface-onVariantDark mt-1 space-y-1">
                   <div>
                     {t('components.versionCard.createdAt')}: {formatDate(sourceVersion.createdAt)}
                   </div>
@@ -171,9 +170,9 @@ export function CompareModal({
                     </div>
                   )}
                   {sourceVersion.notes && (
-                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                    <div className="mt-2 p-2 bg-surface-container-low dark:bg-surface-container-low-dark rounded text-xs">
                       <div className="font-medium mb-1">{t('components.compareModal.notes')}:</div>
-                      <div className="text-gray-700 whitespace-pre-wrap line-clamp-2">
+                      <div className="text-surface-onVariant dark:text-surface-onVariantDark whitespace-pre-wrap line-clamp-2">
                         {sourceVersion.notes}
                       </div>
                     </div>
@@ -181,10 +180,10 @@ export function CompareModal({
                 </div>
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">
+                <h3 className="font-medium text-surface-onSurface dark:text-surface-onSurfaceDark">
                   {targetVersion.name || `版本 ${targetVersion.id.slice(0, 8)}`}
                 </h3>
-                <div className="text-xs text-gray-600 mt-1 space-y-1">
+                <div className="text-xs text-surface-onVariant dark:text-surface-onVariantDark mt-1 space-y-1">
                   <div>
                     {t('components.versionCard.createdAt')}: {formatDate(targetVersion.createdAt)}
                   </div>
@@ -200,9 +199,9 @@ export function CompareModal({
                     </div>
                   )}
                   {targetVersion.notes && (
-                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                    <div className="mt-2 p-2 bg-surface-container-low dark:bg-surface-container-low-dark rounded text-xs">
                       <div className="font-medium mb-1">{t('components.compareModal.notes')}:</div>
-                      <div className="text-gray-700 whitespace-pre-wrap line-clamp-2">
+                      <div className="text-surface-onVariant dark:text-surface-onVariantDark whitespace-pre-wrap line-clamp-2">
                         {targetVersion.notes}
                       </div>
                     </div>
@@ -240,6 +239,9 @@ export function CompareModal({
                 padding: { top: 5, bottom: 10 },
                 renderSideBySide: true,
                 folding: false,
+                renderLineHighlight: 'none',
+                overviewRulerLanes: 0,
+                overviewRulerBorder: false,
               }}
             />
           )}

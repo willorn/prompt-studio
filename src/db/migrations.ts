@@ -13,7 +13,7 @@ import { db } from './schema';
  * 验证数据库是否需要迁移
  */
 export async function checkMigrationNeeded(): Promise<boolean> {
-  const currentVersion = (db as any).verno;
+  const currentVersion = db.verno;
   const latestVersion = 2; // 当前最新版本
 
   return currentVersion < latestVersion;
@@ -24,8 +24,7 @@ export async function checkMigrationNeeded(): Promise<boolean> {
  */
 export async function runMigrations(): Promise<void> {
   // 版本2：添加版本名称支持
-  (db as any)
-    .version(2)
+  db.version(2)
     .stores({
       folders: 'id, parentId, createdAt',
       projects: 'id, folderId, updatedAt, createdAt',
@@ -38,5 +37,5 @@ export async function runMigrations(): Promise<void> {
       console.log('Upgraded to version 2: Added version name support');
     });
 
-  console.log(`Database version: ${(db as any).verno}`);
+  console.log(`Database version: ${db.verno}`);
 }

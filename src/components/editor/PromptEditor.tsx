@@ -20,7 +20,7 @@ export interface PromptEditorRef {
 
 const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
   ({ value, onChange, onSave, onSaveInPlace, onFocusVersionName, readOnly = false }, ref) => {
-    const { editorFontSize, editorLineHeight } = useSettingsStore();
+    const { editorFontSize, editorLineHeight, theme } = useSettingsStore();
     const currentLocale = useI18nStore((state) => state.currentLocale);
     const editorRef = useRef<any | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
@@ -121,20 +121,18 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       []
     );
 
-    const handleEditorDidMount: OnMount = (editor, monaco) => {
-      editorRef.current = editor;
-      monacoRef.current = monaco;
+    // 更新编辑器主题
+    const updateEditorTheme = () => {
+      if (!monacoRef.current) return;
 
-      // Updated M3/Sage Theme
-      // Note: Background must match the card background (surface/surface-dark)
       const isDark = document.documentElement.classList.contains('dark');
-      // Using explicit values from tokens.js
+      // 使用新的 tokens 结构
       const surfaceColor = isDark ? colors.surface.dark : colors.surface.DEFAULT;
       const textColor = isDark ? colors.text.dark.primary : colors.text.light.primary;
       const lineNumberColor = isDark ? colors.text.dark.muted : colors.text.light.muted;
-      const gutterColor = isDark ? colors.surface.dark : colors.surface.variant; // Slightly diff logic in original but mapped to tokens
+      const gutterColor = isDark ? colors.surface.variantDark : colors.surface.variant;
 
-      monaco.editor.defineTheme('prompt-studio-theme', {
+      monacoRef.current.editor.defineTheme('prompt-studio-theme', {
         base: isDark ? 'vs-dark' : 'vs',
         inherit: true,
         rules: [
@@ -155,7 +153,31 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         },
       });
 
-      monaco.editor.setTheme('prompt-studio-theme');
+      monacoRef.current.editor.setTheme('prompt-studio-theme');
+    };
+
+    // 监听主题变化
+    useEffect(() => {
+      updateEditorTheme();
+    }, [theme]); // 当 theme store 更新时触发
+
+    // 同时也监听 DOM class 变化（用于自动模式）
+    useEffect(() => {
+      const observer = new MutationObserver(() => {
+        updateEditorTheme();
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      return () => observer.disconnect();
+    }, []);
+
+    const handleEditorDidMount: OnMount = (editor, monaco) => {
+      editorRef.current = editor;
+      monacoRef.current = monaco;
+
+      updateEditorTheme();
 
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
         if (onSaveInPlaceRef.current) onSaveInPlaceRef.current();
@@ -207,7 +229,7 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
               horizontalScrollbarSize: 7,
               useShadows: false,
             },
-            overviewRulerLanes: 1,
+            overviewRulerLanes: 0,
             overviewRulerBorder: false,
           }}
         />

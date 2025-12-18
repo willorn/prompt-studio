@@ -4,8 +4,8 @@
  */
 
 import type { Version } from '@/models/Version';
-import { buildVersionTree, calculateTreeLayout, type VersionTreeNode } from '@/utils/tree';
 import { colors } from '@/styles/tokens';
+import { buildVersionTree, calculateTreeLayout, type VersionTreeNode } from '@/utils/tree';
 
 export interface CanvasNode {
   id: string;
@@ -59,7 +59,7 @@ export class CanvasRenderer {
     this.resizeCanvas();
   }
 
-  private updateThemeColors() {
+  public updateThemeColors() {
     const isDark = document.documentElement.classList.contains('dark');
     if (isDark) {
       this.themeColors = {
@@ -192,7 +192,7 @@ export class CanvasRenderer {
     return node;
   }
 
-  private draw() {
+  public draw() {
     const { ctx, canvas } = this;
     const { x, y, scale } = this.transform;
 
@@ -254,6 +254,7 @@ export class CanvasRenderer {
         ctx.arcTo(parentCenterX, midY, childCenterX, midY, this.cornerRadius);
 
         // 绘制第二个弯：从 midY 水平延伸，在子节点 X 轴处转向向下
+        // arcTo 会自动从当前点画一条直线到切点，然后画圆弧
         ctx.arcTo(childCenterX, midY, childCenterX, childTopY, this.cornerRadius);
 
         // 最后画直线到子节点顶部
@@ -276,14 +277,12 @@ export class CanvasRenderer {
       ctx.fillStyle = this.themeColors.surface;
     }
 
-    // Shadow effect for unselected cards
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.shadowColor = isDark ? colors.border.dark : colors.border.DEFAULT;
     if (!isSelected) {
-      ctx.shadowColor = colors.primary.selection;
       ctx.shadowBlur = 4;
       ctx.shadowOffsetY = 2;
     } else {
-      // Sage green shadow, using primary color with opacity
-      ctx.shadowColor = colors.primary.selection;
       ctx.shadowBlur = 8;
       ctx.shadowOffsetY = 4;
     }

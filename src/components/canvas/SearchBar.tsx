@@ -114,9 +114,10 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, re
   const canNavigate = total > 1;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-surface-variant rounded-lg shadow-sm">
+    // 修复：暗色模式下使用 surface-container-high-dark 提高容器对比度
+    <div className="flex items-center gap-2 px-3 py-2 bg-surface-variant dark:bg-surface-containerHighDark rounded-lg shadow-sm">
       {/* 搜索图标 */}
-      <Icons.Search className="w-5 h-5 text-surface-onVariant flex-shrink-0" />
+      <Icons.Search className="w-5 h-5 text-surface-onVariant dark:text-surface-onVariantDark flex-shrink-0" />
 
       {/* 输入框 */}
       <input
@@ -126,13 +127,14 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, re
         onChange={(e) => setLocalQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1 bg-transparent outline-none text-surface-onVariant placeholder-surface-onVariant/60 text-sm"
+        // 修复：暗色模式下文字颜色
+        className="flex-1 bg-transparent outline-none text-surface-onVariant dark:text-surface-onSurfaceDark placeholder-surface-onVariant/60 dark:placeholder-surface-onVariantDark/60 text-sm"
         aria-label={t('components.canvas.search')}
       />
 
       {/* 结果计数 */}
       {hasResults && (
-        <span className="text-sm text-surface-onVariant font-medium flex-shrink-0">
+        <span className="text-sm text-surface-onVariant dark:text-surface-onVariantDark font-medium flex-shrink-0">
           {currentIndex + 1}/{total}
         </span>
       )}

@@ -8,6 +8,8 @@ import JSZip from 'jszip';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { importService } from './importService';
 import { ImportOptions, ImportProgressCallback } from '@/types/import';
+import { useI18nStore } from '@/store/i18nStore';
+import { translations } from '@/i18n/locales';
 
 export interface WebDAVConfig {
   url: string;
@@ -16,6 +18,22 @@ export interface WebDAVConfig {
 }
 
 const WEBDAV_DIR = 'prompt-studio-backups';
+
+// 简单的翻译辅助函数
+function t(key: string): string {
+  const currentLocale = useI18nStore.getState().currentLocale;
+  const keys = key.split('.');
+  let value: any = translations[currentLocale];
+
+  for (const k of keys) {
+    value = value?.[k];
+    if (value === undefined) {
+      return key;
+    }
+  }
+
+  return typeof value === 'string' ? value : key;
+}
 
 export class WebDAVService {
   private client: WebDAVClient | null = null;
@@ -37,7 +55,7 @@ export class WebDAVService {
    */
   async testConnection(): Promise<boolean> {
     if (!this.client) {
-      throw new Error('请先配置 WebDAV 连接');
+      throw new Error(t('pages.settings.webdav.configureFirst'));
     }
 
     try {
@@ -54,7 +72,7 @@ export class WebDAVService {
    */
   async backupToWebDAV(): Promise<void> {
     if (!this.client) {
-      throw new Error('请先配置 WebDAV 连接');
+      throw new Error(t('pages.settings.webdav.configureFirst'));
     }
 
     try {
@@ -146,7 +164,8 @@ export class WebDAVService {
       console.log(`备份成功: ${remotePath}`);
     } catch (error) {
       console.error('WebDAV 备份失败:', error);
-      throw new Error(`备份失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      const errorMessage = error instanceof Error ? error.message : t('pages.settings.errors.unknown');
+      throw new Error(`${t('pages.settings.webdav.backupFailed')}: ${errorMessage}`);
     }
   }
 
@@ -157,7 +176,7 @@ export class WebDAVService {
     Array<{ name: string; path: string; size: number; lastMod: string }>
   > {
     if (!this.client) {
-      throw new Error('请先配置 WebDAV 连接');
+      throw new Error(t('pages.settings.webdav.configureFirst'));
     }
 
     try {
@@ -182,7 +201,8 @@ export class WebDAVService {
         .sort((a, b) => new Date(b.lastMod).getTime() - new Date(a.lastMod).getTime());
     } catch (error) {
       console.error('获取备份列表失败:', error);
-      throw new Error(`获取备份列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      const errorMessage = error instanceof Error ? error.message : t('pages.settings.errors.unknown');
+      throw new Error(`${t('pages.settings.errors.loadBackupsFailed')}: ${errorMessage}`);
     }
   }
   /**
@@ -204,7 +224,7 @@ export class WebDAVService {
    */
   async deleteBackup(remotePath: string): Promise<void> {
     if (!this.client) {
-      throw new Error('请先配置 WebDAV 连接');
+      throw new Error(t('pages.settings.webdav.configureFirst'));
     }
 
     try {
@@ -212,7 +232,8 @@ export class WebDAVService {
       console.log(`删除备份成功: ${remotePath}`);
     } catch (error) {
       console.error('删除备份失败:', error);
-      throw new Error(`删除备份失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      const errorMessage = error instanceof Error ? error.message : t('pages.settings.errors.unknown');
+      throw new Error(`${t('pages.settings.webdav.deleteFailed')}: ${errorMessage}`);
     }
   }
 

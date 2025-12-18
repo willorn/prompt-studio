@@ -44,7 +44,9 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 min-w-[200px] flex flex-col gap-2 shrink-0">
       {/* Sidebar Header Card */}
       <div className="bg-surface dark:bg-surface-dark rounded-xl px-4 shadow-card border border-border dark:border-border-dark flex items-center justify-between h-16 shrink-0">
-        <h2 className="font-bold text-surface-onSurface">{t('components.sidebar.projects')}</h2>
+        <h2 className="font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+          {t('components.sidebar.projects')}
+        </h2>
         <SidebarToggle />
       </div>
 
