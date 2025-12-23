@@ -231,5 +231,6 @@ export const zhCN: TranslationData = {
     deleteFailed: '删除失败',
     exportFailed: '导出失败',
     importFailed: '导入失败',
+    projectNotFound: '项目不存在或已被删除',
   },
 };

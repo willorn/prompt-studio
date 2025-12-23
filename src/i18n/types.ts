@@ -289,5 +289,6 @@ export interface TranslationData {
     deleteFailed: string;
     exportFailed: string;
     importFailed: string;
+    projectNotFound: string;
   };
 }

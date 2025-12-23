@@ -32,7 +32,7 @@ export const Sidebar: React.FC = () => {
       await loadFolders();
       const projectId = await createProject(projectName.trim(), rootFolderId);
       await loadProjects();
-      selectProject(projectId);
+      selectProject(projectId, { updateUrl: true });
     }
   };
 

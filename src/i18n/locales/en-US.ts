@@ -236,5 +236,6 @@ export const enUS: TranslationData = {
     deleteFailed: 'Delete failed',
     exportFailed: 'Export failed',
     importFailed: 'Import failed',
+    projectNotFound: 'Project not found or has been deleted',
   },
 };

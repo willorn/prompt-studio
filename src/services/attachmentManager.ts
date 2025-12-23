@@ -8,6 +8,15 @@ import { nanoid } from 'nanoid';
 
 export class AttachmentManager {
   /**
+   * 生成带时间戳前缀的附件 ID
+   * 使用秒级时间戳作为前缀，便于排序
+   */
+  private generateAttachmentId(): string {
+    const timestamp = Math.floor(Date.now() / 1000);
+    return `${timestamp}_${nanoid()}`;
+  }
+
+  /**
    * 上传附件
    */
   async uploadAttachment(versionId: string, file: File): Promise<string> {
@@ -15,7 +24,7 @@ export class AttachmentManager {
     const blob = new Blob([buffer], { type: file.type });
 
     const attachment: Attachment = {
-      id: nanoid(),
+      id: this.generateAttachmentId(),
       versionId,
       fileName: file.name,
       fileType: file.type,

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { db } from '@/db/schema';
 import type { Folder } from '@/models/Folder';
 import type { Project } from '@/models/Project';
+import { useUiStore } from '@/store/uiStore';
 
 interface ProjectState {
   // State
@@ -19,9 +20,10 @@ interface ProjectState {
   renameProject: (id: string, newName: string) => Promise<void>;
   updateProjectTags: (id: string, tags: Project['tags']) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
-  selectProject: (id: string) => void;
+  selectProject: (id: string, options?: { updateUrl?: boolean }) => void;
   setCurrentProject: (id: string | null) => void;
   moveProject: (projectId: string, folderId: string) => Promise<void>;
+  expandFolderPathToProject: (projectId: string) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -147,8 +149,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }));
   },
 
-  selectProject: (id) => {
+  selectProject: (id: string, options?: { updateUrl?: boolean }) => {
     set({ currentProjectId: id });
+    // 可选：更新 URL
+    if (options?.updateUrl !== false) {
+      const hashRouter = window.location.hash.replace(/^#\/?|\/?$/g, '');
+      if (hashRouter === `project/${id}` || hashRouter === `/#project/${id}`) {
+        // 已经在正确的 URL，无需更新
+      } else {
+        window.location.hash = `#/project/${id}`;
+      }
+    }
   },
 
   setCurrentProject: (id) => {
@@ -164,5 +175,30 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         p.id === projectId ? { ...p, folderId: dbFolderId, updatedAt: Date.now() } : p
       ),
     }));
+  },
+
+  expandFolderPathToProject: async (projectId) => {
+    const project = await db.projects.get(projectId);
+    if (!project || !project.folderId) return;
+
+    // 获取所有父文件夹 ID
+    const parentFolderIds: string[] = [];
+    let currentFolderId: string | null = project.folderId;
+
+    while (currentFolderId) {
+      const folder: Folder | undefined = await db.folders.get(currentFolderId);
+      if (folder) {
+        parentFolderIds.unshift(folder.id);
+        currentFolderId = folder.parentId;
+      } else {
+        break;
+      }
+    }
+
+    // 使用 useUiStore 的 expandFolder 展开所有父文件夹
+    const { expandFolder } = useUiStore.getState();
+    for (const folderId of parentFolderIds) {
+      expandFolder(folderId);
+    }
   },
 }));

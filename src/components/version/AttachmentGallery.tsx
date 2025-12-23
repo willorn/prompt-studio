@@ -37,9 +37,10 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const notes = currentVersion?.notes || '';
 
   // 过滤出可预览的图片
-  const previewableAttachments = attachments.filter(
-    (att) => !att.isMissing && att.fileType.startsWith('image/')
-  );
+  const previewableAttachments = attachments
+    .filter((att) => !att.isMissing && att.fileType.startsWith('image/'))
+    // 按 ID 降序排序，较新的附件排在前面
+    .sort((a, b) => b.id.localeCompare(a.id));
 
   // 当前正在预览的附件对象
   const currentPreviewAttachment =
@@ -180,9 +181,11 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
         {/* Version Meta Card - now integrated */}
         <VersionMetaCard versionId={versionId} score={score} notes={notes} readonly={readonly} />
 
-        {/* Attachment Items */}
+        {/* Attachment Items - 按 ID 降序排序，较新的附件排在前面 */}
         <AnimatePresence>
-          {attachments.map((attachment) => (
+          {attachments
+            .sort((a, b) => b.id.localeCompare(a.id))
+            .map((attachment) => (
             <motion.div
               key={attachment.id}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -247,7 +250,7 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                         e.stopPropagation();
                         handlePreview(attachment);
                       }}
-                      className="p-1.5 bg-surface-containerHighest text-surface-onSurface rounded-md shadow-sm "
+                      className="p-1.5 !backdrop-blur-3xl !bg-surface-containerHighest/60 text-surface-onSurface rounded-md shadow-sm "
                       title={t('components.attachmentGallery.preview')}
                     >
                       <Icons.Eye size={12} />
@@ -259,7 +262,7 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                       e.stopPropagation();
                       handleDownload(attachment);
                     }}
-                    className="p-1.5 bg-surface-containerHighest text-surface-onSurface rounded-md shadow-sm "
+                    className="p-1.5 !backdrop-blur-3xl !bg-surface-containerHighest/60 text-surface-onSurface rounded-md shadow-sm "
                     title={t('components.attachmentGallery.download')}
                   >
                     <Icons.Download size={12} />
@@ -271,7 +274,7 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
                         e.stopPropagation();
                         handleDelete(attachment.id);
                       }}
-                      className="p-1.5 bg-surface-containerHighest hover:bg-surface-containerHighest"
+                      className="p-1.5 !backdrop-blur-3xl"
                       title={t('common.delete')}
                     >
                       <Icons.Trash size={12} />

@@ -8,6 +8,10 @@ export const router = createHashRouter([
     element: <MainView />,
   },
   {
+    path: '/project/:projectId',
+    element: <MainView />,
+  },
+  {
     path: '/settings',
     element: <Settings />,
   },
