@@ -100,7 +100,6 @@ export function CompareModal({
         'editor.background': surfaceColor,
         'editor.foreground': textColor,
         'editorCursor.foreground': primary.DEFAULT,
-        'editor.selectionBackground': primary.selection,
         'editorLineNumber.foreground': lineNumberColor,
         'editorGutter.background': gutterColor,
         'editor.lineHighlightBackground': runtimeColors.primary.editorBackground,
@@ -232,21 +231,27 @@ export function CompareModal({
                 fontSize: editorFontSize,
                 lineHeight: Math.round(editorFontSize * editorLineHeight),
                 fontFamily: 'ui-monospace, monospace',
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                useInlineViewWhenSpaceIsLimited: false,
-                automaticLayout: true,
-                glyphMargin: false,
-                padding: { top: 5, bottom: 10 },
-                renderSideBySide: true,
-                folding: false,
-                renderLineHighlight: 'none',
-                overviewRulerLanes: 0,
-                overviewRulerBorder: false,
-              }}
-            />
-          )}
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              useInlineViewWhenSpaceIsLimited: false,
+              automaticLayout: true,
+              glyphMargin: false,
+              padding: { top: 5, bottom: 10 },
+              renderSideBySide: true,
+              folding: false,
+              renderLineHighlight: 'none',
+              unicodeHighlight: {
+                // Disable unicode confusable/invisible character warnings
+                nonBasicASCII: false,
+                ambiguousCharacters: false,
+                invisibleCharacters: false,
+              },
+              overviewRulerLanes: 0,
+              overviewRulerBorder: false,
+            }}
+          />
+        )}
         </div>
       </div>
     </div>
