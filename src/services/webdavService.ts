@@ -44,7 +44,11 @@ export class WebDAVService {
    */
   configure(config: WebDAVConfig): void {
     this.config = config;
-    this.client = createClient(config.url, {
+    const baseUrl = config.url.startsWith('http')
+      ? config.url
+      : `${window.location.origin}${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+
+    this.client = createClient(baseUrl, {
       username: config.username,
       password: config.password,
     });

@@ -19,10 +19,11 @@ const Settings: React.FC = () => {
   const { loadFolders, loadProjects } = useProjectStore();
   const { theme, setTheme, themeColor, setThemeColor } = useSettingsStore();
   const [webdavConfig, setWebdavConfig] = useState<WebDAVConfig>({
-    url: '',
+    url: '/jianguoyun-dav-proxy/', // 默认指向坚果云的代理地址，开箱即用
     username: '',
     password: '',
   });
+  const [webdavProvider, setWebdavProvider] = useState<'jianguoyun' | 'custom'>('jianguoyun');
   const [isConnected, setIsConnected] = useState(false);
   const [testing, setTesting] = useState(false);
   const [backups, setBackups] = useState<
@@ -48,6 +49,11 @@ const Settings: React.FC = () => {
     const config = storage.get<WebDAVConfig | null>(STORAGE_KEYS.WEBDAV_CONFIG, null);
     if (config) {
       setWebdavConfig(config);
+      setWebdavProvider(
+        config.url === '/jianguoyun-dav-proxy/' || config.url.includes('jianguoyun.com')
+          ? 'jianguoyun'
+          : 'custom'
+      );
       webdavService.configure(config);
     }
   }, []);
@@ -58,6 +64,23 @@ const Settings: React.FC = () => {
       storage.set(STORAGE_KEYS.WEBDAV_CONFIG, webdavConfig);
     }
   }, [webdavConfig]);
+
+  const handleProviderChange = (value: 'jianguoyun' | 'custom') => {
+    setWebdavProvider(value);
+    if (value === 'jianguoyun') {
+      setWebdavConfig((prev) => ({ ...prev, url: '/jianguoyun-dav-proxy/' }));
+    } else {
+      setWebdavConfig((prev) => ({ ...prev, url: '' }));
+    }
+  };
+
+  const serverUrlPlaceholder = useMemo(
+    () =>
+      webdavProvider === 'jianguoyun'
+        ? '/jianguoyun-dav-proxy/ （代理到 https://dav.jianguoyun.com/dav/）'
+        : 'https://example.com/webdav',
+    [webdavProvider]
+  );
 
   const handleTestConnection = async () => {
     if (!isConfigValid) return;
@@ -418,13 +441,39 @@ const Settings: React.FC = () => {
             </div>
 
             <div className="space-y-4 max-w-2xl">
-              <Input
-                label={t('pages.settings.webdav.serverUrl')}
-                placeholder="https://example.com/webdav"
-                value={webdavConfig.url}
-                onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
-                className="focus:border-transparent focus:ring-2 focus:ring-primary"
-              />
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-surface-onSurface dark:text-surface-onSurfaceDark">
+                  WebDAV 服务
+                </label>
+                <select
+                  value={webdavProvider}
+                  onChange={(e) => handleProviderChange(e.target.value as 'jianguoyun' | 'custom')}
+                  className="px-4 py-2 border-2 rounded-m3-small 
+                    bg-surface-variant dark:bg-background-dark 
+                    text-surface-onVariant dark:text-surface-onSurfaceDark
+                    border-surface-variant dark:border-border-dark
+                    focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="jianguoyun">坚果云（推荐）</option>
+                  <option value="custom">自定义 WebDAV</option>
+                </select>
+                <p className="text-xs text-surface-onVariant dark:text-surface-onVariantDark">
+                  坚果云将通过 /jianguoyun-dav-proxy/ 代理，避免跨域；如需其他服务请选择自定义并填写完整 URL。
+                </p>
+              </div>
+              {webdavProvider === 'custom' ? (
+                <Input
+                  label={t('pages.settings.webdav.serverUrl')}
+                  placeholder={serverUrlPlaceholder}
+                  value={webdavConfig.url}
+                  onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
+                  className="focus:border-transparent focus:ring-2 focus:ring-primary"
+                />
+              ) : (
+                <div className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+                  已为你使用内置代理 `/jianguoyun-dav-proxy/` 访问坚果云，无需额外配置。
+                </div>
+              )}
               <Input
                 label={t('pages.settings.webdav.username')}
                 placeholder="username"

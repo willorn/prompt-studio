@@ -106,6 +106,14 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    proxy: {
+      '/jianguoyun-dav-proxy': {
+        target: 'https://dav.jianguoyun.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/jianguoyun-dav-proxy/, '/dav'),
+      },
+    },
   },
   build: {
     outDir: 'dist',
