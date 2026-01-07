@@ -3,7 +3,8 @@ import Editor, { Monaco, OnMount, loader } from '@monaco-editor/react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useI18nStore } from '@/store/i18nStore';
 import { Icons } from '@/components/icons/Icons';
-import { colors } from '@/styles/tokens';
+import { runtimeColors } from '@/styles/tokens';
+import { getRuntimePrimary } from '@/theme/themeColor';
 
 interface PromptEditorProps {
   value: string;
@@ -127,10 +128,11 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
 
       const isDark = document.documentElement.classList.contains('dark');
       // 使用新的 tokens 结构
-      const surfaceColor = isDark ? colors.surface.dark : colors.surface.DEFAULT;
-      const textColor = isDark ? colors.text.dark.primary : colors.text.light.primary;
-      const lineNumberColor = isDark ? colors.text.dark.muted : colors.text.light.muted;
-      const gutterColor = isDark ? colors.surface.variantDark : colors.surface.variant;
+      const surfaceColor = isDark ? runtimeColors.surface.dark : runtimeColors.surface.DEFAULT;
+      const textColor = isDark ? runtimeColors.text.dark.primary : runtimeColors.text.light.primary;
+      const lineNumberColor = isDark ? runtimeColors.text.dark.muted : runtimeColors.text.light.muted;
+      const gutterColor = isDark ? runtimeColors.surface.variantDark : runtimeColors.surface.variant;
+      const primary = getRuntimePrimary();
 
       monacoRef.current.editor.defineTheme('prompt-studio-theme', {
         base: isDark ? 'vs-dark' : 'vs',
@@ -145,11 +147,11 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         colors: {
           'editor.background': surfaceColor,
           'editor.foreground': textColor,
-          'editorCursor.foreground': colors.primary.DEFAULT,
-          'editor.selectionBackground': colors.primary.selection,
+          'editorCursor.foreground': primary.DEFAULT,
+          'editor.selectionBackground': primary.selection,
           'editorLineNumber.foreground': lineNumberColor,
           'editorGutter.background': gutterColor,
-          'editor.lineHighlightBackground': colors.primary.editorBackground,
+          'editor.lineHighlightBackground': runtimeColors.primary.editorBackground,
         },
       });
 

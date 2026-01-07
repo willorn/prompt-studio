@@ -65,6 +65,16 @@ export const zhCN: TranslationData = {
           overwriteModeDescription: '清空现有数据后导入。此操作不可撤销，请谨慎选择。',
         },
       },
+      theme: {
+        title: '主题与配色',
+        description: '选择浅色/深色模式，并自定义全局主色，导出/导入时会同步保存。',
+        primaryColor: '主色',
+        reset: '恢复默认',
+        mode: '主题模式',
+        light: '浅色',
+        dark: '深色',
+        toggle: '切换',
+      },
       webdav: {
         title: 'WebDAV 配置',
         description: '配置远程 WebDAV 服务器，以便在多个设备之间同步您的提示词库。',

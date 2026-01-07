@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* 默认主题色（与 DEFAULT_THEME_COLOR 保持一致），保证首屏渲染不闪烁 */
+  --color-primary: 116 158 104;
+  --color-primary-hover: 99 138 88;
+  --color-primary-container: 234 243 230;
+  --color-primary-container-dark: 26 58 15;
+  --color-on-primary: 255 255 255;
+  --color-on-primary-container: 26 58 15;
+  --color-on-primary-container-dark: 234 243 230;
+  --color-primary-rgb: 116 158 104;
+  --color-primary-hex: #749E68;
+  --color-primary-selection: rgba(116, 158, 104, 0.7);
+}
+
 * {
   margin: 0;
   padding: 0;

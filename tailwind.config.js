@@ -1,4 +1,4 @@
-import { colors } from './src/styles/tokens.js';
+import { tailwindColors } from './src/styles/tokens.js';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -11,7 +11,7 @@ export default {
     extend: {
       // 直接使用 tokens.js 中的颜色定义
       // Tailwind 会自动处理嵌套对象（如 primary.DEFAULT, surface.dark）
-      colors: colors,
+      colors: tailwindColors,
       borderRadius: {
         'm3-small': '0.375rem',  // 6px
         'm3-medium': '0.5rem',   // 8px

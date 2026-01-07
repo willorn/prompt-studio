@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useTranslation } from '@/i18n/I18nContext';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { db } from '@/db/schema';
+import { applyThemeColor } from '@/theme/themeColor';
 
 interface AppInitializerProps {
   children: React.ReactNode;
@@ -32,7 +33,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { loadProjects, setCurrentProject, loadFolders, expandFolderPathToProject } = useProjectStore();
   const { loadVersions } = useVersionStore();
-  const { theme } = useSettingsStore();
+  const { theme, themeColor } = useSettingsStore();
   const t = useTranslation();
 
   // 使用 ref 确保初始化只执行一次（防止 React 18 严格模式下的双重调用）
@@ -51,6 +52,11 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 
     applyTheme(theme === 'dark');
   }, [theme]);
+
+  // 主题色管理（写入 CSS 变量，供 Tailwind & 运行时代码共享）
+  useEffect(() => {
+    applyThemeColor(themeColor);
+  }, [themeColor]);
 
   // 处理从 URL 打开项目的函数
   const handleOpenProjectFromUrl = useCallback(async (projectId: string) => {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { webdavService, type WebDAVConfig } from '@/services/webdavService';
 import { exportService } from '@/services/exportService';
 import { useProjectStore } from '@/store/projectStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { Input } from '@/components/common/Input';
 import { Modal } from '@/components/common/Modal';
 import { MinimalButton } from '@/components/common/MinimalButton';
@@ -10,11 +11,13 @@ import { ImportModeDialog } from '@/components/common/ImportModeDialog';
 import { Icons } from '@/components/icons/Icons';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { useTranslation } from '@/i18n/I18nContext';
+import { DEFAULT_THEME_COLOR } from '@/styles/tokens';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const t = useTranslation();
   const { loadFolders, loadProjects } = useProjectStore();
+  const { theme, setTheme, themeColor, setThemeColor } = useSettingsStore();
   const [webdavConfig, setWebdavConfig] = useState<WebDAVConfig>({
     url: '',
     username: '',
@@ -254,6 +257,18 @@ const Settings: React.FC = () => {
     return date.toLocaleString('zh-CN');
   };
 
+  const handleThemeColorChange = (color: string) => {
+    setThemeColor(color);
+  };
+
+  const handleResetThemeColor = () => {
+    setThemeColor(DEFAULT_THEME_COLOR);
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background dark:bg-background-dark text-surface-onSurface overflow-hidden">
       {/* 头部 */}
@@ -275,6 +290,75 @@ const Settings: React.FC = () => {
       {/* 主内容区 */}
       <div className="flex-1 flex overflow-hidden p-2 gap-2 justify-center">
         <main className="flex-1 flex flex-col overflow-y-auto max-w-4xl p-4 md:p-6 gap-6">
+          {/* 主题设置卡片 */}
+          <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
+                <span className="material-symbols-outlined text-2xl">palette</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+                  {t('pages.settings.theme.title')}
+                </h2>
+                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
+                  {t('pages.settings.theme.description')}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center">
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+                  {t('pages.settings.theme.primaryColor')}
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="color"
+                  value={themeColor}
+                  onChange={(e) => handleThemeColorChange(e.target.value)}
+                  aria-label={t('pages.settings.theme.primaryColor')}
+                  className="h-10 w-16 rounded border border-border dark:border-border-dark cursor-pointer bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={themeColor}
+                  onChange={(e) => handleThemeColorChange(e.target.value)}
+                  className="h-10 px-3 rounded-lg border border-border dark:border-border-dark bg-surface-variant dark:bg-surface-variantDark text-sm text-surface-onSurface dark:text-surface-onSurfaceDark focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  spellCheck={false}
+                />
+                <MinimalButton variant="ghost" onClick={handleResetThemeColor}>
+                  {t('pages.settings.theme.reset')}
+                </MinimalButton>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mt-6">
+              <span className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+                {t('pages.settings.theme.mode')}
+              </span>
+              <div className="flex gap-2">
+                <MinimalButton
+                  variant={theme === 'light' ? 'default' : 'ghost'}
+                  onClick={() => setTheme('light')}
+                  className="px-3 py-2 text-sm"
+                >
+                  {t('pages.settings.theme.light')}
+                </MinimalButton>
+                <MinimalButton
+                  variant={theme === 'dark' ? 'default' : 'ghost'}
+                  onClick={() => setTheme('dark')}
+                  className="px-3 py-2 text-sm"
+                >
+                  {t('pages.settings.theme.dark')}
+                </MinimalButton>
+                <MinimalButton variant="ghost" onClick={toggleTheme} className="px-3 py-2 text-sm">
+                  {t('pages.settings.theme.toggle')}
+                </MinimalButton>
+              </div>
+            </div>
+          </section>
+
           {/* 本地导入导出卡片 */}
           <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
             <div className="flex items-start gap-4 mb-6">

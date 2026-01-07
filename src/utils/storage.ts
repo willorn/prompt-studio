@@ -64,4 +64,6 @@ export const STORAGE_KEYS = {
   FIRST_OPEN_TIME: 'promptStudio.app.firstOpenTime',
   WEBDAV_CONFIG: 'promptStudio.settings.webdav_config',
   UI_LANGUAGE: 'promptStudio.app.ui_language',
+  THEME: 'promptStudio.settings.theme',
+  THEME_COLOR: 'promptStudio.settings.themeColor',
 } as const;

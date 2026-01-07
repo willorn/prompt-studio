@@ -67,6 +67,17 @@ export const enUS: TranslationData = {
             'Clear existing data before importing. This action cannot be undone, please proceed with caution.',
         },
       },
+      theme: {
+        title: 'Theme & Colors',
+        description:
+          'Pick light/dark mode and customize the global primary color. The color is saved in backups for transfer.',
+        primaryColor: 'Primary Color',
+        reset: 'Reset to Default',
+        mode: 'Theme Mode',
+        light: 'Light',
+        dark: 'Dark',
+        toggle: 'Toggle',
+      },
       webdav: {
         title: 'WebDAV Configuration',
         description:

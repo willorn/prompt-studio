@@ -11,7 +11,8 @@ import { Icons } from '@/components/icons/Icons';
 import { useTranslation } from '@/i18n/I18nContext';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useI18nStore } from '@/store/i18nStore';
-import { colors } from '@/styles/tokens';
+import { runtimeColors } from '@/styles/tokens';
+import { getRuntimePrimary } from '@/theme/themeColor';
 import { MinimalButton } from '@/components/common/MinimalButton';
 
 export interface CompareModalProps {
@@ -79,10 +80,11 @@ export function CompareModal({
     // 动态检测暗黑模式，确保 Diff 编辑器主题与主编辑器一致
     const isDark = document.documentElement.classList.contains('dark');
     // Using explicit values from tokens.js
-    const surfaceColor = isDark ? colors.surface.dark : colors.surface.DEFAULT;
-    const textColor = isDark ? colors.text.dark.primary : colors.text.light.primary;
-    const lineNumberColor = isDark ? colors.text.dark.muted : colors.text.light.muted;
-    const gutterColor = isDark ? colors.surface.variantDark : colors.surface.variant;
+    const surfaceColor = isDark ? runtimeColors.surface.dark : runtimeColors.surface.DEFAULT;
+    const textColor = isDark ? runtimeColors.text.dark.primary : runtimeColors.text.light.primary;
+    const lineNumberColor = isDark ? runtimeColors.text.dark.muted : runtimeColors.text.light.muted;
+    const gutterColor = isDark ? runtimeColors.surface.variantDark : runtimeColors.surface.variant;
+    const primary = getRuntimePrimary();
 
     monaco.editor.defineTheme('prompt-studio-diff-theme', {
       base: isDark ? 'vs-dark' : 'vs',
@@ -97,11 +99,11 @@ export function CompareModal({
       colors: {
         'editor.background': surfaceColor,
         'editor.foreground': textColor,
-        'editorCursor.foreground': colors.primary.DEFAULT,
-        'editor.selectionBackground': colors.primary.selection,
+        'editorCursor.foreground': primary.DEFAULT,
+        'editor.selectionBackground': primary.selection,
         'editorLineNumber.foreground': lineNumberColor,
         'editorGutter.background': gutterColor,
-        'editor.lineHighlightBackground': colors.primary.editorBackground,
+        'editor.lineHighlightBackground': runtimeColors.primary.editorBackground,
       },
     });
     monaco.editor.setTheme('prompt-studio-diff-theme');

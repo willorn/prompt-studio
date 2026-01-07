@@ -111,6 +111,16 @@ export interface TranslationData {
           overwriteModeDescription: string;
         };
       };
+      theme: {
+        title: string;
+        description: string;
+        primaryColor: string;
+        reset: string;
+        mode: string;
+        light: string;
+        dark: string;
+        toggle: string;
+      };
       webdav: {
         title: string;
         description: string;

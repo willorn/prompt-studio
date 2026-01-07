@@ -4,7 +4,8 @@
  */
 
 import type { Version } from '@/models/Version';
-import { colors } from '@/styles/tokens';
+import { runtimeColors } from '@/styles/tokens';
+import { getRuntimePrimary } from '@/theme/themeColor';
 import { buildVersionTree, calculateTreeLayout, type VersionTreeNode } from '@/utils/tree';
 
 export interface CanvasNode {
@@ -36,16 +37,16 @@ export class CanvasRenderer {
 
   // Theme Colors - initialized with defaults, updated in updateThemeColors
   private themeColors = {
-    primary: colors.primary.DEFAULT,
-    primaryContainer: colors.background.DEFAULT,
-    onPrimary: colors.primary.onPrimary,
-    surface: colors.surface.DEFAULT,
-    surfaceVariant: colors.surface.variant,
-    onSurface: colors.text.light.primary,
-    onSurfaceVariant: colors.text.light.secondary,
-    outline: colors.border.DEFAULT,
-    selectedNode: colors.primary.DEFAULT,
-    connection: colors.text.light.muted,
+    primary: runtimeColors.primary.DEFAULT,
+    primaryContainer: runtimeColors.background.DEFAULT,
+    onPrimary: runtimeColors.primary.onPrimary,
+    surface: runtimeColors.surface.DEFAULT,
+    surfaceVariant: runtimeColors.surface.variant,
+    onSurface: runtimeColors.text.light.primary,
+    onSurfaceVariant: runtimeColors.text.light.secondary,
+    outline: runtimeColors.border.DEFAULT,
+    selectedNode: runtimeColors.primary.DEFAULT,
+    connection: runtimeColors.text.light.muted,
   };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -60,33 +61,34 @@ export class CanvasRenderer {
   }
 
   public updateThemeColors() {
+    const primary = getRuntimePrimary();
     const isDark = document.documentElement.classList.contains('dark');
     if (isDark) {
       this.themeColors = {
-        primary: colors.primary.DEFAULT,
-        primaryContainer: colors.surface.onSurface, // Using onSurface as container-like in dark logic for text
-        onPrimary: colors.primary.onPrimary,
-        surface: colors.surface.dark,
-        surfaceVariant: colors.border.dark,
-        onSurface: colors.text.dark.primary,
-        onSurfaceVariant: colors.text.dark.muted,
-        outline: colors.border.dark,
-        selectedNode: colors.primary.DEFAULT,
-        connection: colors.text.dark.muted,
+        primary: primary.DEFAULT,
+        primaryContainer: runtimeColors.surface.onSurface, // Using onSurface as container-like in dark logic for text
+        onPrimary: primary.onPrimary,
+        surface: runtimeColors.surface.dark,
+        surfaceVariant: runtimeColors.border.dark,
+        onSurface: runtimeColors.text.dark.primary,
+        onSurfaceVariant: runtimeColors.text.dark.muted,
+        outline: runtimeColors.border.dark,
+        selectedNode: primary.DEFAULT,
+        connection: runtimeColors.text.dark.muted,
       };
     } else {
       // Light mode default
       this.themeColors = {
-        primary: colors.primary.DEFAULT,
-        primaryContainer: colors.background.DEFAULT,
-        onPrimary: colors.primary.onPrimary,
-        surface: colors.surface.DEFAULT,
-        surfaceVariant: colors.surface.variant,
-        onSurface: colors.text.light.primary,
-        onSurfaceVariant: colors.text.light.secondary,
-        outline: colors.border.DEFAULT,
-        selectedNode: colors.primary.DEFAULT,
-        connection: colors.text.light.muted,
+        primary: primary.DEFAULT,
+        primaryContainer: runtimeColors.background.DEFAULT,
+        onPrimary: primary.onPrimary,
+        surface: runtimeColors.surface.DEFAULT,
+        surfaceVariant: runtimeColors.surface.variant,
+        onSurface: runtimeColors.text.light.primary,
+        onSurfaceVariant: runtimeColors.text.light.secondary,
+        outline: runtimeColors.border.DEFAULT,
+        selectedNode: primary.DEFAULT,
+        connection: runtimeColors.text.light.muted,
       };
     }
   }
@@ -278,7 +280,7 @@ export class CanvasRenderer {
     }
 
     const isDark = document.documentElement.classList.contains('dark');
-    ctx.shadowColor = isDark ? colors.border.dark : colors.border.DEFAULT;
+    ctx.shadowColor = isDark ? this.themeColors.outline : this.themeColors.outline;
     if (!isSelected) {
       ctx.shadowBlur = 4;
       ctx.shadowOffsetY = 2;

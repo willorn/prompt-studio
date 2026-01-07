@@ -7,6 +7,7 @@ import { db } from '@/db/schema';
 import JSZip from 'jszip';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { normalize } from '@/utils/normalize';
+import { useSettingsStore } from '@/store/settingsStore';
 import type {
   ImportOptions,
   ImportResult,
@@ -372,6 +373,14 @@ export class ImportService {
     }
     if (settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] !== undefined) {
       storage.set(STORAGE_KEYS.SIDEBAR_COLLAPSED, settings[STORAGE_KEYS.SIDEBAR_COLLAPSED]);
+    }
+    if (settings[STORAGE_KEYS.THEME] !== undefined) {
+      storage.set(STORAGE_KEYS.THEME, settings[STORAGE_KEYS.THEME]);
+      useSettingsStore.getState().setTheme(settings[STORAGE_KEYS.THEME]);
+    }
+    if (settings[STORAGE_KEYS.THEME_COLOR] !== undefined) {
+      storage.set(STORAGE_KEYS.THEME_COLOR, settings[STORAGE_KEYS.THEME_COLOR]);
+      useSettingsStore.getState().setThemeColor(settings[STORAGE_KEYS.THEME_COLOR]);
     }
   }
 }

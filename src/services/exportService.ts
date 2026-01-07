@@ -101,9 +101,13 @@ export class ExportService {
     const canvasRatio = storage.get(STORAGE_KEYS.CANVAS_RATIO, null);
     const editorHeightRatio = storage.get(STORAGE_KEYS.EDITOR_HEIGHT_RATIO, null);
     const sidebarCollapsed = storage.get(STORAGE_KEYS.SIDEBAR_COLLAPSED, null);
+    const theme = storage.get(STORAGE_KEYS.THEME, null);
+    const themeColor = storage.get(STORAGE_KEYS.THEME_COLOR, null);
     if (canvasRatio !== null) settings[STORAGE_KEYS.CANVAS_RATIO] = canvasRatio;
     if (editorHeightRatio !== null) settings[STORAGE_KEYS.EDITOR_HEIGHT_RATIO] = editorHeightRatio;
     if (sidebarCollapsed !== null) settings[STORAGE_KEYS.SIDEBAR_COLLAPSED] = sidebarCollapsed;
+    if (theme !== null) settings[STORAGE_KEYS.THEME] = theme;
+    if (themeColor !== null) settings[STORAGE_KEYS.THEME_COLOR] = themeColor;
 
     zip.file('settings.json', JSON.stringify(settings, null, 2));
 
