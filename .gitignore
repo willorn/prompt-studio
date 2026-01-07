@@ -61,3 +61,6 @@ playwright/.cache/
 
 !.codebuddy
 ！specs
+
+.bun
+bun.lock
