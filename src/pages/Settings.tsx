@@ -90,8 +90,8 @@ const Settings: React.FC = () => {
       const result = await webdavService.testConnection();
       setIsConnected(result);
       if (result) {
-        alert(t('pages.settings.webdav.connectionSuccess'));
-        loadBackups();
+          alert(t('pages.settings.webdav.connectionSuccess'));
+          await loadBackups();
       } else {
         alert(t('pages.settings.webdav.connectionFailed'));
       }
@@ -123,7 +123,7 @@ const Settings: React.FC = () => {
     try {
       await webdavService.backupToWebDAV();
       alert(t('pages.settings.webdav.backupSuccess'));
-      loadBackups();
+      await loadBackups();
     } catch (error) {
       alert(
         `${t('pages.settings.webdav.backupFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
@@ -190,7 +190,7 @@ const Settings: React.FC = () => {
       await webdavService.deleteBackup(remotePath);
       alert(t('pages.settings.webdav.deleteSuccess'));
       // 更新备份列表和模态框中的备份列表
-      loadBackups();
+      await loadBackups();
       setBackups((prev) => prev.filter((b) => b.path !== remotePath));
     } catch (error) {
       alert(

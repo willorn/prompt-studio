@@ -1,4 +1,6 @@
-declare const colors: {
+export declare const DEFAULT_THEME_COLOR: string;
+
+export type TokenColors = {
   primary: {
     DEFAULT: string;
     hover: string;
@@ -62,4 +64,6 @@ declare const colors: {
   };
 };
 
-export { colors };
+export declare const runtimeColors: TokenColors;
+export declare const colors: TokenColors;
+export declare const tailwindColors: TokenColors;
