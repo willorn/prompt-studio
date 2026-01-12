@@ -27,7 +27,22 @@ export class ImportService {
     options: ImportOptions,
     onProgress?: ImportProgressCallback
   ): Promise<ImportResult> {
-    const zip = await JSZip.loadAsync(file);
+    let zip: JSZip;
+    try {
+      zip = await JSZip.loadAsync(file);
+    } catch (error) {
+      return {
+        success: false,
+        message: `导入失败: 无法读取 ZIP 文件，请确认文件是否完整有效 (${error instanceof Error ? error.message : '未知错误'})`,
+        imported: {
+          projects: 0,
+          folders: 0,
+          versions: 0,
+          snippets: 0,
+          attachments: 0,
+        },
+      };
+    }
 
     // 读取所有数据文件
     const projectsFile = zip.file('projects.json');
@@ -144,6 +159,37 @@ export class ImportService {
       const arrayBuffer = (await webdavService.client.getFileContents(remotePath, {
         format: 'binary',
       })) as ArrayBuffer;
+
+      // 基础校验：确保文件是 ZIP（以 PK 开头）
+      const bytes =
+        arrayBuffer instanceof ArrayBuffer
+          ? new Uint8Array(arrayBuffer)
+          : new Uint8Array(arrayBuffer as any);
+      const isZip = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+      if (!isZip) {
+        let snippet = '';
+        try {
+          snippet = new TextDecoder()
+            .decode(bytes.slice(0, 200))
+            .replace(/\s+/g, ' ')
+            .trim();
+        } catch {
+          // ignore decode errors
+        }
+        return {
+          success: false,
+          message: `WebDAV 导入失败: 备份文件不是有效的 ZIP，可能已损坏或选择了错误的文件（路径: ${remotePath}${
+            snippet ? `，响应片段: ${snippet}` : ''
+          }）`,
+          imported: {
+            projects: 0,
+            folders: 0,
+            versions: 0,
+            snippets: 0,
+            attachments: 0,
+          },
+        };
+      }
 
       // 转换为 File 对象以便复用 ZIP 导入逻辑
       const file = new File([arrayBuffer], 'backup.zip', { type: 'application/zip' });

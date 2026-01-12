@@ -19,6 +19,13 @@ export interface WebDAVConfig {
 
 const WEBDAV_DIR = 'prompt-studio-backups';
 
+// 规范化远程路径：统一确保有前导斜杠；保留绝对 URL（交给 SDK 处理）
+const normalizeRemotePath = (path: string): string => {
+  if (!path) return path;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return path.startsWith('/') ? path : `/${path}`;
+};
+
 // 简单的翻译辅助函数
 function t(key: string): string {
   const currentLocale = useI18nStore.getState().currentLocale;
@@ -200,12 +207,15 @@ export class WebDAVService {
 
       return (contents as any[])
         .filter((item) => item.type === 'file' && item.basename.endsWith('.zip'))
-        .map((item) => ({
-          name: item.basename,
-          path: item.filename,
-          size: item.size,
-          lastMod: item.lastmod,
-        }))
+        .map((item) => {
+          const safePath = `/${WEBDAV_DIR}/${item.basename}`;
+          return {
+            name: item.basename,
+            path: safePath,
+            size: item.size,
+            lastMod: item.lastmod,
+          };
+        })
         .sort((a, b) => new Date(b.lastMod).getTime() - new Date(a.lastMod).getTime());
     } catch (error) {
       console.error('获取备份列表失败:', error);
@@ -221,7 +231,8 @@ export class WebDAVService {
     options: ImportOptions,
     onProgress?: ImportProgressCallback
   ): Promise<void> {
-    const result = await importService.importFromWebDAV(this, remotePath, options, onProgress);
+    const normalizedPath = normalizeRemotePath(remotePath);
+    const result = await importService.importFromWebDAV(this, normalizedPath, options, onProgress);
     if (!result.success) {
       throw new Error(result.message);
     }
