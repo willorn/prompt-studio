@@ -70,9 +70,7 @@ const MainView: React.FC = () => {
   const [isDraggingAttachments, setIsDraggingAttachments] = useState(false);
 
   // 面板折叠状态
-  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(
-    () => window.innerWidth < 1024
-  );
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(true);
   const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(
     () => window.innerWidth < 1024
   );

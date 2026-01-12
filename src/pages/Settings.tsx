@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { webdavService, type WebDAVConfig } from '@/services/webdavService';
 import { exportService } from '@/services/exportService';
@@ -34,6 +34,19 @@ const Settings: React.FC = () => {
   const [showImportModeDialog, setShowImportModeDialog] = useState(false);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [pendingRestorePath, setPendingRestorePath] = useState<string | null>(null);
+  const [configJson, setConfigJson] = useState('');
+  const [selectedSection, setSelectedSection] = useState<'local' | 'sync' | 'theme'>('local');
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimer = useRef<number | null>(null);
+
+  const sectionItems = useMemo(
+    () => [
+      { key: 'local' as const, label: t('pages.settings.menu.local'), icon: 'folder_zip' },
+      { key: 'sync' as const, label: t('pages.settings.menu.sync'), icon: 'cloud_sync' },
+      { key: 'theme' as const, label: t('pages.settings.menu.theme'), icon: 'palette' },
+    ],
+    [t]
+  );
 
   // 校验配置是否完整
   const isConfigValid = useMemo(() => {
@@ -292,6 +305,83 @@ const Settings: React.FC = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) {
+        window.clearTimeout(toastTimer.current);
+      }
+    };
+  }, []);
+
+  const showToast = (message: string, duration = 300) => {
+    if (toastTimer.current) {
+      window.clearTimeout(toastTimer.current);
+    }
+    setToastMessage(message);
+    toastTimer.current = window.setTimeout(() => {
+      setToastMessage('');
+    }, duration);
+  };
+
+  // 构建当前配置的 JSON（仅 WebDAV）
+  const buildConfigSnapshot = () => {
+    return {
+      version: '1.0',
+      webdavConfig,
+    };
+  };
+
+  const handleCopyConfigJson = async () => {
+    const snapshot = buildConfigSnapshot();
+    const json = JSON.stringify(snapshot, null, 2);
+    setConfigJson(json);
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(json);
+        showToast(t('pages.settings.local.configSync.copySuccess'));
+      } else {
+        throw new Error('Clipboard API not available');
+      }
+    } catch (error) {
+      console.error('Failed to copy config JSON', error);
+      alert(t('pages.settings.local.configSync.copyFailed'));
+    }
+  };
+
+  const handleApplyConfigJson = () => {
+    if (!configJson.trim()) {
+      alert(t('pages.settings.local.configSync.parseFailed'));
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(configJson);
+      const { webdavConfig: importedWebdav } = parsed;
+
+      if (importedWebdav) {
+        setWebdavConfig(importedWebdav);
+        storage.set(STORAGE_KEYS.WEBDAV_CONFIG, importedWebdav);
+        webdavService.configure(importedWebdav);
+        setWebdavProvider(
+          importedWebdav.url === '/jianguoyun-dav-proxy/' ||
+            importedWebdav.url?.includes('jianguoyun.com')
+            ? 'jianguoyun'
+            : 'custom'
+        );
+      }
+
+      setConfigJson(JSON.stringify(parsed, null, 2));
+      showToast(t('pages.settings.local.configSync.applySuccess'));
+    } catch (error) {
+      alert(
+        `${t('pages.settings.local.configSync.parseFailed')}: ${
+          error instanceof Error ? error.message : t('pages.settings.errors.unknown')
+        }`
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background dark:bg-background-dark text-surface-onSurface overflow-hidden">
       {/* 头部 */}
@@ -312,234 +402,309 @@ const Settings: React.FC = () => {
 
       {/* 主内容区 */}
       <div className="flex-1 flex overflow-hidden p-2 gap-2 justify-center">
-        <main className="flex-1 flex flex-col overflow-y-auto max-w-4xl p-4 md:p-6 gap-6">
-          {/* 主题设置卡片 */}
-          <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
-                <span className="material-symbols-outlined text-2xl">palette</span>
+        <main className="flex-1 flex flex-col overflow-hidden max-w-5xl p-4 md:p-6">
+          <div className="flex flex-col lg:flex-row gap-4 h-full">
+            <aside className="lg:w-60 w-full shrink-0">
+              <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-2 shadow-sm">
+                {sectionItems.map((item) => {
+                  const active = selectedSection === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setSelectedSection(item.key)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        active
+                          ? 'bg-primary/10 text-primary border border-primary/30'
+                          : 'text-surface-onVariant dark:text-surface-onVariantDark hover:bg-surface-variant dark:hover:bg-surface-variantDark'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
-                  {t('pages.settings.theme.title')}
-                </h2>
-                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
-                  {t('pages.settings.theme.description')}
-                </p>
-              </div>
-            </div>
+            </aside>
 
-            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center">
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
-                  {t('pages.settings.theme.primaryColor')}
-                </label>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  type="color"
-                  value={themeColor}
-                  onChange={(e) => handleThemeColorChange(e.target.value)}
-                  aria-label={t('pages.settings.theme.primaryColor')}
-                  className="h-10 w-16 rounded border border-border dark:border-border-dark cursor-pointer bg-transparent"
-                />
-                <input
-                  type="text"
-                  value={themeColor}
-                  onChange={(e) => handleThemeColorChange(e.target.value)}
-                  className="h-10 px-3 rounded-lg border border-border dark:border-border-dark bg-surface-variant dark:bg-surface-variantDark text-sm text-surface-onSurface dark:text-surface-onSurfaceDark focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  spellCheck={false}
-                />
-                <MinimalButton variant="ghost" onClick={handleResetThemeColor}>
-                  {t('pages.settings.theme.reset')}
-                </MinimalButton>
-              </div>
-            </div>
+            <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+              {selectedSection === 'theme' && (
+                <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
+                      <span className="material-symbols-outlined text-2xl">palette</span>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+                        {t('pages.settings.theme.title')}
+                      </h2>
+                      <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
+                        {t('pages.settings.theme.description')}
+                      </p>
+                    </div>
+                  </div>
 
-            <div className="flex items-center gap-4 mt-6">
-              <span className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
-                {t('pages.settings.theme.mode')}
-              </span>
-              <div className="flex gap-2">
-                <MinimalButton
-                  variant={theme === 'light' ? 'default' : 'ghost'}
-                  onClick={() => setTheme('light')}
-                  className="px-3 py-2 text-sm"
-                >
-                  {t('pages.settings.theme.light')}
-                </MinimalButton>
-                <MinimalButton
-                  variant={theme === 'dark' ? 'default' : 'ghost'}
-                  onClick={() => setTheme('dark')}
-                  className="px-3 py-2 text-sm"
-                >
-                  {t('pages.settings.theme.dark')}
-                </MinimalButton>
-                <MinimalButton variant="ghost" onClick={toggleTheme} className="px-3 py-2 text-sm">
-                  {t('pages.settings.theme.toggle')}
-                </MinimalButton>
-              </div>
-            </div>
-          </section>
+                  <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 items-center">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+                        {t('pages.settings.theme.primaryColor')}
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <input
+                        type="color"
+                        value={themeColor}
+                        onChange={(e) => handleThemeColorChange(e.target.value)}
+                        aria-label={t('pages.settings.theme.primaryColor')}
+                        className="h-10 w-16 rounded border border-border dark:border-border-dark cursor-pointer bg-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={themeColor}
+                        onChange={(e) => handleThemeColorChange(e.target.value)}
+                        className="h-10 px-3 rounded-lg border border-border dark:border-border-dark bg-surface-variant dark:bg-surface-variantDark text-sm text-surface-onSurface dark:text-surface-onSurfaceDark focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        spellCheck={false}
+                      />
+                      <MinimalButton variant="ghost" onClick={handleResetThemeColor}>
+                        {t('pages.settings.theme.reset')}
+                      </MinimalButton>
+                    </div>
+                  </div>
 
-          {/* 本地导入导出卡片 */}
-          <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
-                <span className="material-symbols-outlined text-2xl">folder_zip</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
-                  {t('pages.settings.local.title')}
-                </h2>
-                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
-                  {t('pages.settings.local.description')}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 w-full sm:w-auto justify-end">
-              <MinimalButton
-                variant="default"
-                onClick={handleExportClick}
-                className="px-4 py-2.5 text-sm gap-2"
-              >
-                <Icons.Download size={18} />
-                {t('pages.settings.local.exportZip')}
-              </MinimalButton>
-              <MinimalButton
-                variant="default"
-                onClick={handleImportClick}
-                className="px-4 py-2.5 text-sm gap-2"
-              >
-                <Icons.Upload size={18} />
-                {t('pages.settings.local.importZip')}
-              </MinimalButton>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".zip"
-                className="hidden"
-                onChange={handleImportFile}
-              />
-            </div>
-          </section>
+                  <div className="flex items-center gap-4 mt-6">
+                    <span className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+                      {t('pages.settings.theme.mode')}
+                    </span>
+                    <div className="flex gap-2">
+                      <MinimalButton
+                        variant={theme === 'light' ? 'default' : 'ghost'}
+                        onClick={() => setTheme('light')}
+                        className="px-3 py-2 text-sm"
+                      >
+                        {t('pages.settings.theme.light')}
+                      </MinimalButton>
+                      <MinimalButton
+                        variant={theme === 'dark' ? 'default' : 'ghost'}
+                        onClick={() => setTheme('dark')}
+                        className="px-3 py-2 text-sm"
+                      >
+                        {t('pages.settings.theme.dark')}
+                      </MinimalButton>
+                      <MinimalButton
+                        variant="ghost"
+                        onClick={toggleTheme}
+                        className="px-3 py-2 text-sm"
+                      >
+                        {t('pages.settings.theme.toggle')}
+                      </MinimalButton>
+                    </div>
+                  </div>
+                </section>
+              )}
 
-          {/* WebDAV 配置卡片 */}
-          <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
-                <span className="material-symbols-outlined text-2xl">cloud_sync</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
-                  {t('pages.settings.webdav.title')}
-                </h2>
-                <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
-                  {t('pages.settings.webdav.description')}
-                </p>
-              </div>
-            </div>
+              {selectedSection === 'local' && (
+                <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
+                      <span className="material-symbols-outlined text-2xl">folder_zip</span>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+                        {t('pages.settings.local.title')}
+                      </h2>
+                      <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
+                        {t('pages.settings.local.description')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 w-full sm:w-auto justify-end">
+                    <MinimalButton
+                      variant="default"
+                      onClick={handleExportClick}
+                      className="px-4 py-2.5 text-sm gap-2"
+                    >
+                      <Icons.Download size={18} />
+                      {t('pages.settings.local.exportZip')}
+                    </MinimalButton>
+                    <MinimalButton
+                      variant="default"
+                      onClick={handleImportClick}
+                      className="px-4 py-2.5 text-sm gap-2"
+                    >
+                      <Icons.Upload size={18} />
+                      {t('pages.settings.local.importZip')}
+                    </MinimalButton>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".zip"
+                      className="hidden"
+                      onChange={handleImportFile}
+                    />
+                  </div>
+                </section>
+              )}
 
-            <div className="space-y-4 max-w-2xl">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-surface-onSurface dark:text-surface-onSurfaceDark">
-                  WebDAV 服务
-                </label>
-                <select
-                  value={webdavProvider}
-                  onChange={(e) => handleProviderChange(e.target.value as 'jianguoyun' | 'custom')}
-                  className="px-4 py-2 border-2 rounded-m3-small 
+              {selectedSection === 'sync' && (
+                <>
+                  {/* 配置 JSON 快速同步 */}
+                  <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
+                        <span className="material-symbols-outlined text-2xl">sync_alt</span>
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+                          {t('pages.settings.local.configSync.title')}
+                        </h2>
+                        <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
+                          {t('pages.settings.local.configSync.description')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3 mb-3">
+                      <MinimalButton
+                        variant="default"
+                        onClick={handleCopyConfigJson}
+                        className="px-4 py-2.5 text-sm gap-2"
+                      >
+                        <Icons.Copy size={18} />
+                        {t('pages.settings.local.configSync.copyJson')}
+                      </MinimalButton>
+                      <MinimalButton
+                        variant="ghost"
+                        onClick={handleApplyConfigJson}
+                        className="px-4 py-2.5 text-sm gap-2"
+                      >
+                        <Icons.Upload size={18} />
+                        {t('pages.settings.local.configSync.applyJson')}
+                      </MinimalButton>
+                    </div>
+
+                    <textarea
+                      value={configJson}
+                      onChange={(e) => setConfigJson(e.target.value)}
+                      placeholder={t('pages.settings.local.configSync.placeholder')}
+                      className="w-full min-h-[180px] rounded-lg border border-border dark:border-border-dark bg-surface-variant dark:bg-surface-variantDark p-3 text-sm text-surface-onSurface dark:text-surface-onSurfaceDark focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono"
+                      spellCheck={false}
+                    />
+                  </section>
+
+                  {/* WebDAV 配置卡片 */}
+                  <section className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-6">
+                    <div className="flex items-start gap-4 mb-6">
+                      <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
+                        <span className="material-symbols-outlined text-2xl">cloud_sync</span>
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-surface-onSurface dark:text-surface-onSurfaceDark">
+                          {t('pages.settings.webdav.title')}
+                        </h2>
+                        <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark mt-1">
+                          {t('pages.settings.webdav.description')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 max-w-2xl">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-surface-onSurface dark:text-surface-onSurfaceDark">
+                          WebDAV 服务
+                        </label>
+                        <select
+                          value={webdavProvider}
+                          onChange={(e) =>
+                            handleProviderChange(e.target.value as 'jianguoyun' | 'custom')
+                          }
+                          className="px-4 py-2 border-2 rounded-m3-small 
                     bg-surface-variant dark:bg-background-dark 
                     text-surface-onVariant dark:text-surface-onSurfaceDark
                     border-surface-variant dark:border-border-dark
                     focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="jianguoyun">坚果云（推荐）</option>
-                  <option value="custom">自定义 WebDAV</option>
-                </select>
-                <p className="text-xs text-surface-onVariant dark:text-surface-onVariantDark">
-                  坚果云将通过 /jianguoyun-dav-proxy/ 代理，避免跨域；如需其他服务请选择自定义并填写完整 URL。
-                </p>
-              </div>
-              {webdavProvider === 'custom' ? (
-                <Input
-                  label={t('pages.settings.webdav.serverUrl')}
-                  placeholder={serverUrlPlaceholder}
-                  value={webdavConfig.url}
-                  onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
-                  className="focus:border-transparent focus:ring-2 focus:ring-primary"
-                />
-              ) : (
-                <div className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
-                  已为你使用内置代理 `/jianguoyun-dav-proxy/` 访问坚果云，无需额外配置。
-                </div>
+                        >
+                          <option value="jianguoyun">坚果云（推荐）</option>
+                          <option value="custom">自定义 WebDAV</option>
+                        </select>
+                      </div>
+                      {webdavProvider === 'custom' ? (
+                        <Input
+                          label={t('pages.settings.webdav.serverUrl')}
+                          placeholder={serverUrlPlaceholder}
+                          value={webdavConfig.url}
+                          onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
+                          className="focus:border-transparent focus:ring-2 focus:ring-primary"
+                        />
+                      ) : null}
+                      <Input
+                        label={t('pages.settings.webdav.username')}
+                        placeholder="username"
+                        value={webdavConfig.username}
+                        onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
+                        className="focus:border-transparent focus:ring-2 focus:ring-primary"
+                      />
+                      <Input
+                        label={t('pages.settings.webdav.password')}
+                        type="password"
+                        placeholder="password"
+                        value={webdavConfig.password}
+                        onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
+                        className="focus:border-transparent focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-border dark:border-border-dark">
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <MinimalButton
+                          variant="default"
+                          onClick={handleTestConnection}
+                          disabled={testing || !isConfigValid}
+                          className="w-full sm:w-auto px-4 py-2.5 text-sm gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">wifi</span>
+                          {testing
+                            ? t('pages.settings.webdav.testing')
+                            : t('pages.settings.webdav.testConnection')}
+                        </MinimalButton>
+                        {isConnected && (
+                          <span className="flex items-center text-sm text-primary font-medium shrink-0">
+                            <span className="material-symbols-outlined text-lg mr-1">check_circle</span>
+                            {t('pages.settings.webdav.connected')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 w-full sm:w-auto">
+                        <MinimalButton
+                          variant="default"
+                          onClick={handleBackup}
+                          disabled={loading || !isConfigValid}
+                          className="flex-1 sm:flex-none px-4 py-2.5 text-sm gap-2"
+                        >
+                          {loading ? (
+                            <span>{t('pages.settings.webdav.backingUp')}</span>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                              <span>{t('pages.settings.webdav.backupToWebdav')}</span>
+                            </>
+                          )}
+                        </MinimalButton>
+                        <MinimalButton
+                          variant="default"
+                          onClick={handleOpenRestoreModal}
+                          disabled={loading || !isConfigValid}
+                          className="flex-1 sm:flex-none px-4 py-2.5 text-sm gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">cloud_download</span>
+                          <span>{t('pages.settings.webdav.restoreFromWebdav')}</span>
+                        </MinimalButton>
+                      </div>
+                    </div>
+                  </section>
+                </>
               )}
-              <Input
-                label={t('pages.settings.webdav.username')}
-                placeholder="username"
-                value={webdavConfig.username}
-                onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
-                className="focus:border-transparent focus:ring-2 focus:ring-primary"
-              />
-              <Input
-                label={t('pages.settings.webdav.password')}
-                type="password"
-                placeholder="password"
-                value={webdavConfig.password}
-                onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
-                className="focus:border-transparent focus:ring-2 focus:ring-primary"
-              />
             </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-border dark:border-border-dark">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <MinimalButton
-                  variant="default"
-                  onClick={handleTestConnection}
-                  disabled={testing || !isConfigValid}
-                  className="w-full sm:w-auto px-4 py-2.5 text-sm gap-2"
-                >
-                  <span className="material-symbols-outlined text-[18px]">wifi</span>
-                  {testing
-                    ? t('pages.settings.webdav.testing')
-                    : t('pages.settings.webdav.testConnection')}
-                </MinimalButton>
-                {isConnected && (
-                  <span className="flex items-center text-sm text-primary font-medium shrink-0">
-                    <span className="material-symbols-outlined text-lg mr-1">check_circle</span>
-                    {t('pages.settings.webdav.connected')}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex gap-3 w-full sm:w-auto">
-                <MinimalButton
-                  variant="default"
-                  onClick={handleBackup}
-                  disabled={loading || !isConfigValid}
-                  className="flex-1 sm:flex-none px-4 py-2.5 text-sm gap-2"
-                >
-                  {loading ? (
-                    <span>{t('pages.settings.webdav.backingUp')}</span>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-                      <span>{t('pages.settings.webdav.backupToWebdav')}</span>
-                    </>
-                  )}
-                </MinimalButton>
-                <MinimalButton
-                  variant="default"
-                  onClick={handleOpenRestoreModal}
-                  disabled={loading || !isConfigValid}
-                  className="flex-1 sm:flex-none px-4 py-2.5 text-sm gap-2"
-                >
-                  <span className="material-symbols-outlined text-[18px]">cloud_download</span>
-                  <span>{t('pages.settings.webdav.restoreFromWebdav')}</span>
-                </MinimalButton>
-              </div>
-            </div>
-          </section>
+          </div>
         </main>
       </div>
 
@@ -601,6 +766,12 @@ const Settings: React.FC = () => {
         onClose={handleCancelImportMode}
         onConfirm={handleImportWithMode}
       />
+
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[2000] px-4 py-2 rounded-lg shadow-lg bg-surface text-surface-onSurface dark:bg-surface-dark dark:text-surface-onSurfaceDark border border-border dark:border-border-dark transition-opacity">
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 };

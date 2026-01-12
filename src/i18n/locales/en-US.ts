@@ -46,6 +46,11 @@ export const enUS: TranslationData = {
 
     settings: {
       title: 'Settings',
+      menu: {
+        local: 'Local Import/Export',
+        sync: 'Sync & Config',
+        theme: 'Theme & Colors',
+      },
 
       local: {
         title: 'Local Import/Export',
@@ -57,6 +62,18 @@ export const enUS: TranslationData = {
         importSuccess: 'Import successful',
         importFailed: 'Import failed',
         exportFailed: 'Export failed',
+        configSync: {
+          title: 'Quick Config Sync',
+          description:
+            'Copy current WebDAV settings as JSON and paste on another device to speed up setup.',
+          copyJson: 'Generate & Copy JSON',
+          applyJson: 'Apply from JSON',
+          placeholder: 'Paste config JSON here, or click above to generate from current settings...',
+          copySuccess: 'Config copied to clipboard',
+          copyFailed: 'Copy failed, please copy manually',
+          parseFailed: 'Failed to parse JSON, please check the format',
+          applySuccess: 'Config applied',
+        },
         importMode: {
           selectMode: 'Select Import Mode',
           mergeMode: 'Merge Import (Recommended)',

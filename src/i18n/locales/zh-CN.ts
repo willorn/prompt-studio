@@ -46,6 +46,11 @@ export const zhCN: TranslationData = {
 
     settings: {
       title: '设置',
+      menu: {
+        local: '本地导入导出',
+        sync: '同步与配置',
+        theme: '主题与配色',
+      },
 
       local: {
         title: '本地导入导出',
@@ -57,6 +62,17 @@ export const zhCN: TranslationData = {
         importSuccess: '导入成功',
         importFailed: '导入失败',
         exportFailed: '导出失败',
+        configSync: {
+          title: '快速配置同步',
+          description: '将当前 WebDAV 配置复制为 JSON，在另一台设备粘贴导入，减少重复填写。',
+          copyJson: '生成并复制 JSON',
+          applyJson: '从 JSON 应用配置',
+          placeholder: '在此粘贴配置 JSON，或点击上方按钮生成当前配置...',
+          copySuccess: '配置已复制到剪贴板',
+          copyFailed: '复制失败，请手动复制文本',
+          parseFailed: '解析失败，请确认 JSON 格式',
+          applySuccess: '配置已应用',
+        },
         importMode: {
           selectMode: '选择导入模式',
           mergeMode: '合并导入（推荐）',

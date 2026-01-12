@@ -93,6 +93,11 @@ export interface TranslationData {
     /** 设置页 */
     settings: {
       title: string;
+      menu: {
+        local: string;
+        sync: string;
+        theme: string;
+      };
 
       local: {
         title: string;
@@ -103,6 +108,17 @@ export interface TranslationData {
         importSuccess: string;
         importFailed: string;
         exportFailed: string;
+        configSync: {
+          title: string;
+          description: string;
+          copyJson: string;
+          applyJson: string;
+          placeholder: string;
+          copySuccess: string;
+          copyFailed: string;
+          parseFailed: string;
+          applySuccess: string;
+        };
         importMode: {
           selectMode: string;
           mergeMode: string;
