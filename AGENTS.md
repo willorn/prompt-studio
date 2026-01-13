@@ -1,5 +1,10 @@
 # Repository Guidelines
 
+## 重要
+
+- 保留注释，不要轻易删除注释
+- 必须使用中文回复
+
 ## Project Structure & Module Organization
 - `src/` holds all app code: `components/` (UI atoms/molecules), `pages/` (route views), `store/` (Zustand state), `services/` (API/diff helpers), `db/` (Dexie), `styles/` & `theme/` (Tailwind tokens, CSS vars), `utils/` (shared helpers), `test/` (unit helper utils).  
 - `public/` static assets; `assets/` design files; `docs/` product docs; `tests/` Playwright e2e specs; `specs/` additional test fixtures.  
