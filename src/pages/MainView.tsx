@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/projectStore';
 import { useVersionStore } from '@/store/versionStore';
@@ -12,7 +12,6 @@ import type { Version } from '@/models/Version';
 import { MinimalButton } from '@/components/common/MinimalButton';
 import VersionCanvas from '@/components/canvas/VersionCanvas';
 import { AttachmentGallery } from '@/components/version/AttachmentGallery';
-import { CompareModal } from '@/components/version/CompareModal';
 
 import { DuplicateDialog } from '@/components/common/DuplicateDialog';
 import { ResizableSplitter } from '@/components/common/ResizableSplitter';
@@ -20,6 +19,10 @@ import { VerticalResizableSplitter } from '@/components/common/VerticalResizable
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Icons } from '@/components/icons/Icons';
+
+const LazyCompareModal = React.lazy(() =>
+  import('@/components/version/CompareModal').then((mod) => ({ default: mod.CompareModal }))
+);
 
 const MainView: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +36,6 @@ const MainView: React.FC = () => {
     updateVersionInPlace,
     setCurrentVersion,
     compareState,
-    compareMode,
   } = useVersionStore();
 
   // 布局偏好设置
@@ -76,13 +78,27 @@ const MainView: React.FC = () => {
   );
 
   // 处理版本树中的节点点击
-  const handleVersionNodeClick = (versionId: string) => {
+  const handleVersionNodeClick = useCallback((versionId: string) => {
+    const { compareMode, compareState, setCompareTarget, setCurrentVersion } =
+      useVersionStore.getState();
     if (compareMode && compareState.sourceVersionId && versionId !== compareState.sourceVersionId) {
-      useVersionStore.getState().setCompareTarget(versionId);
+      setCompareTarget(versionId);
     } else {
       setCurrentVersion(versionId);
     }
-  };
+  }, []);
+
+  const loadAttachments = useCallback(
+    async (versionId: string) => {
+      try {
+        const att = await attachmentManager.getAttachmentsByVersion(versionId);
+        setAttachments(att);
+      } catch (error) {
+        console.error(t('pages.mainView.errors.loadAttachmentsFailed'), error);
+      }
+    },
+    [t]
+  );
 
   useEffect(() => {
     if (currentProjectId) {
@@ -130,7 +146,7 @@ const MainView: React.FC = () => {
         setEditorContent(version.content);
         setVersionName(version.name || '');
         setCanSaveInPlace(true);
-        loadAttachments(currentVersionId);
+        void loadAttachments(currentVersionId);
         setTimeout(() => {
           editorRef.current?.focus();
         }, 100);
@@ -144,16 +160,7 @@ const MainView: React.FC = () => {
         editorRef.current?.focus();
       }, 100);
     }
-  }, [currentVersionId, versions, currentProjectId]);
-
-  const loadAttachments = async (versionId: string) => {
-    try {
-      const att = await attachmentManager.getAttachmentsByVersion(versionId);
-      setAttachments(att);
-    } catch (error) {
-      console.error(t('pages.mainView.errors.loadAttachmentsFailed'), error);
-    }
-  };
+  }, [currentProjectId, currentVersionId, loadAttachments, versions]);
 
   const handleSave = async () => {
     if (!currentProjectId) {
@@ -214,55 +221,80 @@ const MainView: React.FC = () => {
     }
   };
 
-  const handleUploadFiles = async (files: FileList) => {
-    setIsDraggingAttachments(false);
-    if (!currentVersionId) return;
+  const handleUploadFiles = useCallback(
+    async (files: FileList) => {
+      setIsDraggingAttachments(false);
+      if (!currentVersionId) return;
 
-    const validTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'video/mp4',
-      'video/webm',
-    ];
+      const validTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'video/mp4',
+        'video/webm',
+      ];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!validTypes.includes(file.type)) {
-        alert(`${t('components.attachmentGallery.unsupportedType')}: ${file.type}`);
-        continue;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!validTypes.includes(file.type)) {
+          alert(`${t('components.attachmentGallery.unsupportedType')}: ${file.type}`);
+          continue;
+        }
+        if (file.size > 50 * 1024 * 1024) {
+          alert(`${t('components.attachmentGallery.fileTooLarge')}: ${file.name}`);
+          continue;
+        }
+        try {
+          await attachmentManager.uploadAttachment(currentVersionId, file);
+        } catch (error) {
+          console.error('上传附件失败:', error);
+          alert(`${t('components.attachmentGallery.uploadFailed')}: ${file.name}`);
+        }
       }
-      if (file.size > 50 * 1024 * 1024) {
-        alert(`${t('components.attachmentGallery.fileTooLarge')}: ${file.name}`);
-        continue;
-      }
-      try {
-        await attachmentManager.uploadAttachment(currentVersionId, file);
-      } catch (error) {
-        console.error('上传附件失败:', error);
-        alert(`${t('components.attachmentGallery.uploadFailed')}: ${file.name}`);
-      }
-    }
-    loadAttachments(currentVersionId);
-  };
+      void loadAttachments(currentVersionId);
+    },
+    [currentVersionId, loadAttachments, t]
+  );
 
-  const handleAttachmentDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingAttachments(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleUploadFiles(e.dataTransfer.files);
-    }
-  };
+  const handleAttachmentDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDraggingAttachments(false);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        void handleUploadFiles(e.dataTransfer.files);
+      }
+    },
+    [handleUploadFiles]
+  );
 
-  const handleAttachmentDragOver = (e: React.DragEvent) => {
+  const handleAttachmentDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingAttachments(true);
-  };
+  }, []);
 
-  const handleAttachmentDragLeave = () => {
+  const handleAttachmentDragLeave = useCallback(() => {
     setIsDraggingAttachments(false);
-  };
+  }, []);
+
+  const handleAttachmentsChange = useCallback(() => {
+    if (!currentVersionId) return;
+    void loadAttachments(currentVersionId);
+  }, [currentVersionId, loadAttachments]);
+
+  const sourceVersion = useMemo(() => {
+    if (!compareState.sourceVersionId) return null;
+    return versions.find((v) => v.id === compareState.sourceVersionId) || null;
+  }, [compareState.sourceVersionId, versions]);
+
+  const targetVersion = useMemo(() => {
+    if (!compareState.targetVersionId) return null;
+    return versions.find((v) => v.id === compareState.targetVersionId) || null;
+  }, [compareState.targetVersionId, versions]);
+
+  const handleCloseCompare = useCallback(() => {
+    useVersionStore.getState().closeCompare();
+  }, []);
 
   return (
     <div className="h-dynamic-screen flex flex-col bg-background dark:bg-background-dark text-surface-onSurface transition-colors duration-200">
@@ -469,7 +501,7 @@ const MainView: React.FC = () => {
                         <AttachmentGallery
                           versionId={currentVersionId}
                           attachments={attachments}
-                          onAttachmentsChange={() => loadAttachments(currentVersionId)}
+                          onAttachmentsChange={handleAttachmentsChange}
                           readonly={false}
                           onUpload={handleUploadFiles}
                         />
@@ -521,12 +553,24 @@ const MainView: React.FC = () => {
         </div>
       </div>
 
-      <CompareModal
-        isOpen={compareState.isOpen}
-        sourceVersion={versions.find((v) => v.id === compareState.sourceVersionId) || null}
-        targetVersion={versions.find((v) => v.id === compareState.targetVersionId) || null}
-        onClose={() => useVersionStore.getState().closeCompare()}
-      />
+      {compareState.isOpen && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-surface dark:bg-surface-dark rounded-2xl px-6 py-4 shadow-2xl border border-border dark:border-border-dark text-surface-onSurface dark:text-surface-onSurfaceDark">
+                {t('components.compareModal.title')}加载中...
+              </div>
+            </div>
+          }
+        >
+          <LazyCompareModal
+            isOpen={compareState.isOpen}
+            sourceVersion={sourceVersion}
+            targetVersion={targetVersion}
+            onClose={handleCloseCompare}
+          />
+        </Suspense>
+      )}
 
       <DuplicateDialog
         isOpen={showDuplicateDialog}

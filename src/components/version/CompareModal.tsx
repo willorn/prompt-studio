@@ -3,7 +3,7 @@
  * 使用 @monaco-editor/react 实现并排Diff视图
  */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { DiffEditor, DiffOnMount } from '@monaco-editor/react';
 import type { Version } from '@/models/Version';
 import { diffService } from '@/services/diffService';
@@ -45,10 +45,38 @@ export function CompareModal({
   const modalTitle = title || t('components.compareModal.title');
 
   // 计算相似度
-  const similarity =
-    sourceVersion && targetVersion
-      ? diffService.computeSimilarity(sourceVersion.content, targetVersion.content)
-      : 0;
+  const similarity = useMemo(() => {
+    if (!sourceVersion || !targetVersion) return 0;
+    return diffService.computeSimilarity(sourceVersion.content, targetVersion.content);
+  }, [sourceVersion, targetVersion]);
+
+  const diffEditorOptions = useMemo(
+    () => ({
+      readOnly: true,
+      fontSize: editorFontSize,
+      lineHeight: Math.round(editorFontSize * editorLineHeight),
+      fontFamily: 'ui-monospace, monospace',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on' as const,
+      useInlineViewWhenSpaceIsLimited: false,
+      automaticLayout: true,
+      glyphMargin: false,
+      padding: { top: 5, bottom: 10 },
+      renderSideBySide: true,
+      folding: false,
+      renderLineHighlight: 'none' as const,
+      unicodeHighlight: {
+        // 禁用unicode易混淆/不可见字符警告
+        nonBasicASCII: false,
+        ambiguousCharacters: false,
+        invisibleCharacters: false,
+      },
+      overviewRulerLanes: 0,
+      overviewRulerBorder: false,
+    }),
+    [editorFontSize, editorLineHeight]
+  );
 
   // ESC键关闭
   useEffect(() => {
@@ -226,32 +254,9 @@ export function CompareModal({
               onMount={handleEditorDidMount}
               keepCurrentModifiedModel={true}
               keepCurrentOriginalModel={true}
-              options={{
-                readOnly: true,
-                fontSize: editorFontSize,
-                lineHeight: Math.round(editorFontSize * editorLineHeight),
-                fontFamily: 'ui-monospace, monospace',
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              useInlineViewWhenSpaceIsLimited: false,
-              automaticLayout: true,
-              glyphMargin: false,
-              padding: { top: 5, bottom: 10 },
-              renderSideBySide: true,
-              folding: false,
-              renderLineHighlight: 'none',
-              unicodeHighlight: {
-                // Disable unicode confusable/invisible character warnings
-                nonBasicASCII: false,
-                ambiguousCharacters: false,
-                invisibleCharacters: false,
-              },
-              overviewRulerLanes: 0,
-              overviewRulerBorder: false,
-            }}
-          />
-        )}
+              options={diffEditorOptions}
+            />
+          )}
         </div>
       </div>
     </div>

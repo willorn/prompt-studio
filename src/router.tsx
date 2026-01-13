@@ -1,6 +1,14 @@
+import React, { Suspense } from 'react';
 import { createHashRouter } from 'react-router-dom';
 import MainView from './pages/MainView';
-import Settings from './pages/Settings';
+
+const Settings = React.lazy(() => import('./pages/Settings'));
+
+const routeFallback = (
+  <div className="h-dynamic-screen flex items-center justify-center bg-background dark:bg-background-dark text-surface-onVariant">
+    加载中...
+  </div>
+);
 
 export const router = createHashRouter([
   {
@@ -13,6 +21,10 @@ export const router = createHashRouter([
   },
   {
     path: '/settings',
-    element: <Settings />,
+    element: (
+      <Suspense fallback={routeFallback}>
+        <Settings />
+      </Suspense>
+    ),
   },
 ]);

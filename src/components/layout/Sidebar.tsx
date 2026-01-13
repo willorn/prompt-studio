@@ -1,4 +1,4 @@
-import React, { HTMLAttributes, useEffect } from 'react';
+import React, { HTMLAttributes, useEffect, memo } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUiStore } from '@/store/uiStore';
 import { Icons } from '@/components/icons/Icons';
@@ -6,7 +6,7 @@ import { FolderTree } from './FolderTree';
 import { useTranslation } from '@/i18n/I18nContext';
 import { MinimalButton } from '@/components/common/MinimalButton';
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC = memo(() => {
   const t = useTranslation();
   const { sidebarCollapsed, sidebarTemporarilyExpanded } = useUiStore();
   const { loadFolders, loadProjects, createFolder, createProject, selectProject } =
@@ -79,9 +79,9 @@ export const Sidebar: React.FC = () => {
       </div>
     </aside>
   );
-};
+});
 
-export const SidebarToggle: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
+const SidebarToggleComponent: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
   className = '',
   ...props
 }) => {
@@ -104,3 +104,5 @@ export const SidebarToggle: React.FC<HTMLAttributes<HTMLButtonElement>> = ({
     </MinimalButton>
   );
 };
+
+export const SidebarToggle = memo(SidebarToggleComponent);

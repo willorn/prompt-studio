@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { useVersionStore } from '@/store/versionStore';
 import { CanvasRenderer } from '@/services/canvasRenderer';
 import { CanvasInteraction } from '@/services/canvasInteraction';
@@ -37,6 +37,10 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const interactionRef = useRef<CanvasInteraction | null>(null);
   const onNodeClickRef = useRef(onNodeClick);
+
+  useEffect(() => {
+    onNodeClickRef.current = onNodeClick;
+  }, [onNodeClick]);
 
   const {
     versions,
@@ -418,4 +422,4 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   );
 };
 
-export default VersionCanvas;
+export default memo(VersionCanvas);

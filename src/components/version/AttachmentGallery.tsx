@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { memo, useMemo, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { attachmentManager } from '@/services/attachmentManager';
 import type { Attachment } from '@/models/Attachment';
@@ -17,7 +17,7 @@ interface AttachmentGalleryProps {
   onUpload?: (files: FileList) => Promise<void>;
 }
 
-export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
+const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
   versionId,
   attachments,
   onAttachmentsChange,
@@ -37,17 +37,23 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
   const notes = currentVersion?.notes || '';
 
   // 过滤出可预览的图片
-  const previewableAttachments = attachments
-    .filter((att) => !att.isMissing && att.fileType.startsWith('image/'))
-    // 按 ID 降序排序，较新的附件排在前面
-    .sort((a, b) => b.id.localeCompare(a.id));
+  const previewableAttachments = useMemo(() => {
+    return (
+      attachments
+        .filter((att) => !att.isMissing && att.fileType.startsWith('image/'))
+        // 按 ID 降序排序，较新的附件排在前面
+        .sort((a, b) => b.id.localeCompare(a.id))
+    );
+  }, [attachments]);
 
   // 当前正在预览的附件对象
-  const currentPreviewAttachment =
-    previewIndex !== null ? previewableAttachments[previewIndex] : null;
-  const previewUrl = currentPreviewAttachment
-    ? attachmentManager.getPreviewUrl(currentPreviewAttachment)
-    : null;
+  const currentPreviewAttachment = useMemo(() => {
+    return previewIndex !== null ? previewableAttachments[previewIndex] : null;
+  }, [previewIndex, previewableAttachments]);
+
+  const previewUrl = useMemo(() => {
+    return currentPreviewAttachment ? attachmentManager.getPreviewUrl(currentPreviewAttachment) : null;
+  }, [currentPreviewAttachment]);
 
   const handleFileSelect = useCallback(
     async (files: FileList | null) => {
@@ -311,3 +317,5 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({
     </div>
   );
 };
+
+export const AttachmentGallery = memo(AttachmentGalleryComponent);

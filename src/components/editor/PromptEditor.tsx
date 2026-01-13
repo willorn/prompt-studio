@@ -1,4 +1,12 @@
-import { useRef, useImperativeHandle, forwardRef, useEffect, useState } from 'react';
+import {
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import Editor, { Monaco, OnMount, loader } from '@monaco-editor/react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useI18nStore } from '@/store/i18nStore';
@@ -26,16 +34,19 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     const editorRef = useRef<any | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
 
-    loader.config({
-      paths: {
-        vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.49.0/min/vs',
-      },
-      'vs/nls': {
-        availableLanguages: {
-          '*': currentLocale === 'zh-CN' ? 'zh-cn' : 'en',
+    // 注意：不要在 render 里反复 loader.config（输入时每次 rerender 都会触发），会明显拖慢编辑体验
+    useLayoutEffect(() => {
+      loader.config({
+        paths: {
+          vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.49.0/min/vs',
         },
-      },
-    });
+        'vs/nls': {
+          availableLanguages: {
+            '*': currentLocale === 'zh-CN' ? 'zh-cn' : 'en',
+          },
+        },
+      });
+    }, [currentLocale]);
 
     const onSaveRef = useRef(onSave);
     const onSaveInPlaceRef = useRef(onSaveInPlace);
@@ -130,8 +141,12 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       // 使用新的 tokens 结构
       const surfaceColor = isDark ? runtimeColors.surface.dark : runtimeColors.surface.DEFAULT;
       const textColor = isDark ? runtimeColors.text.dark.primary : runtimeColors.text.light.primary;
-      const lineNumberColor = isDark ? runtimeColors.text.dark.muted : runtimeColors.text.light.muted;
-      const gutterColor = isDark ? runtimeColors.surface.variantDark : runtimeColors.surface.variant;
+      const lineNumberColor = isDark
+        ? runtimeColors.text.dark.muted
+        : runtimeColors.text.light.muted;
+      const gutterColor = isDark
+        ? runtimeColors.surface.variantDark
+        : runtimeColors.surface.variant;
       const primary = getRuntimePrimary();
 
       monacoRef.current.editor.defineTheme('prompt-studio-theme', {
@@ -201,6 +216,39 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       });
     };
 
+    const editorOptions = useMemo(
+      () => ({
+        readOnly,
+        fontSize: editorFontSize,
+        lineHeight: Math.round(editorFontSize * editorLineHeight),
+        fontFamily: 'ui-monospace, monospace',
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        wordWrap: 'on' as const,
+        automaticLayout: true,
+        padding: { top: 5, bottom: 10 },
+        lineNumbers: 'on' as const,
+        lineNumbersMinChars: 2,
+        renderLineHighlight: 'none' as const, // Cleaner look
+        folding: false,
+        unicodeHighlight: {
+          // Disable unicode confusable/invisible character warnings
+          nonBasicASCII: false,
+          ambiguousCharacters: false,
+          invisibleCharacters: false,
+        },
+        scrollbar: {
+          verticalScrollbarSize: 7,
+          horizontalScrollbarSize: 7,
+          useShadows: false,
+        },
+        overviewRulerLanes: 0,
+        overviewRulerBorder: false,
+        occurrencesHighlight: 'off' as const,
+      }),
+      [editorFontSize, editorLineHeight, readOnly]
+    );
+
     return (
       <div className="h-full w-full relative overflow-hidden rounded-b-xl">
         <Editor
@@ -211,35 +259,7 @@ const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
           value={value}
           onChange={(value) => onChange(value || '')}
           onMount={handleEditorDidMount}
-          options={{
-            readOnly,
-            fontSize: editorFontSize,
-            lineHeight: Math.round(editorFontSize * editorLineHeight),
-            fontFamily: 'ui-monospace, monospace',
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          wordWrap: 'on',
-          automaticLayout: true,
-          padding: { top: 5, bottom: 10 },
-          lineNumbers: 'on',
-          lineNumbersMinChars: 2,
-          renderLineHighlight: 'none', // Cleaner look
-          folding: false,
-          unicodeHighlight: {
-            // Disable unicode confusable/invisible character warnings
-            nonBasicASCII: false,
-            ambiguousCharacters: false,
-            invisibleCharacters: false,
-          },
-          scrollbar: {
-            verticalScrollbarSize: 7,
-            horizontalScrollbarSize: 7,
-            useShadows: false,
-          },
-            overviewRulerLanes: 0,
-            overviewRulerBorder: false,
-            occurrencesHighlight: 'off',
-          }}
+          options={editorOptions}
         />
         {isTouchDevice && (
           <div className="absolute right-5 top-[60%] flex flex-col gap-3 p-2 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl z-50">
