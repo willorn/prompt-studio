@@ -19,6 +19,7 @@ import { VerticalResizableSplitter } from '@/components/common/VerticalResizable
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Icons } from '@/components/icons/Icons';
+import { useOverlayStore } from '@/store/overlayStore';
 
 const LazyCompareModal = React.lazy(() =>
   import('@/components/version/CompareModal').then((mod) => ({ default: mod.CompareModal }))
@@ -164,7 +165,9 @@ const MainView: React.FC = () => {
 
   const handleSave = async () => {
     if (!currentProjectId) {
-      alert(t('pages.mainView.errors.selectProjectFirst'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.mainView.errors.selectProjectFirst'), variant: 'warning' });
       return;
     }
     try {
@@ -178,7 +181,12 @@ const MainView: React.FC = () => {
       setCurrentVersion(versionId);
       await loadVersions(currentProjectId);
     } catch (error) {
-      alert(`${t('pages.mainView.errors.saveFailed')}: ${error}`);
+      useOverlayStore
+        .getState()
+        .showToast({
+          message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
+          variant: 'error',
+        });
     }
   };
 
@@ -198,7 +206,12 @@ const MainView: React.FC = () => {
       setDuplicateVersion(null);
       setPendingSaveData(null);
     } catch (error) {
-      alert(`${t('pages.mainView.errors.saveFailed')}: ${error}`);
+      useOverlayStore
+        .getState()
+        .showToast({
+          message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
+          variant: 'error',
+        });
     }
   };
 
@@ -210,14 +223,21 @@ const MainView: React.FC = () => {
 
   const handleSaveInPlace = async () => {
     if (!currentVersionId) {
-      alert(t('pages.mainView.errors.selectVersionFirst'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.mainView.errors.selectVersionFirst'), variant: 'warning' });
       return;
     }
     try {
       await updateVersionInPlace(currentVersionId, editorContent, versionName);
       await loadVersions(currentProjectId!);
     } catch (error) {
-      alert(`${t('pages.mainView.errors.saveFailed')}: ${error}`);
+      useOverlayStore
+        .getState()
+        .showToast({
+          message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
+          variant: 'error',
+        });
     }
   };
 
@@ -238,18 +258,27 @@ const MainView: React.FC = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (!validTypes.includes(file.type)) {
-          alert(`${t('components.attachmentGallery.unsupportedType')}: ${file.type}`);
+          useOverlayStore.getState().showToast({
+            message: `${t('components.attachmentGallery.unsupportedType')}: ${file.type}`,
+            variant: 'warning',
+          });
           continue;
         }
         if (file.size > 50 * 1024 * 1024) {
-          alert(`${t('components.attachmentGallery.fileTooLarge')}: ${file.name}`);
+          useOverlayStore.getState().showToast({
+            message: `${t('components.attachmentGallery.fileTooLarge')}: ${file.name}`,
+            variant: 'warning',
+          });
           continue;
         }
         try {
           await attachmentManager.uploadAttachment(currentVersionId, file);
         } catch (error) {
           console.error('上传附件失败:', error);
-          alert(`${t('components.attachmentGallery.uploadFailed')}: ${file.name}`);
+          useOverlayStore.getState().showToast({
+            message: `${t('components.attachmentGallery.uploadFailed')}: ${file.name}`,
+            variant: 'error',
+          });
         }
       }
       void loadAttachments(currentVersionId);

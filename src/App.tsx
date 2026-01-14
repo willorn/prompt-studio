@@ -1,11 +1,13 @@
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { AppInitializer } from './components/AppInitializer';
+import { OverlayHost } from '@/components/common/OverlayHost';
 
 function App() {
   // AppInitializer（启动前准备）和 RouterProvider（路由渲染）。这相当于 Java Web 的启动器 + 前端路由器。
   return (
     <AppInitializer>
+      <OverlayHost />
       <RouterProvider router={router} />
     </AppInitializer>
   );

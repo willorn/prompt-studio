@@ -12,6 +12,7 @@ import { useTranslation } from '@/i18n/I18nContext';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { db } from '@/db/schema';
 import { applyThemeColor } from '@/theme/themeColor';
+import { useOverlayStore } from '@/store/overlayStore';
 
 interface AppInitializerProps {
   children: React.ReactNode;
@@ -31,7 +32,8 @@ const getProjectIdFromUrl = (): string | null => {
 
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const { loadProjects, setCurrentProject, loadFolders, expandFolderPathToProject } = useProjectStore();
+  const { loadProjects, setCurrentProject, loadFolders, expandFolderPathToProject } =
+    useProjectStore();
   const { loadVersions } = useVersionStore();
   const { theme, themeColor } = useSettingsStore();
   const t = useTranslation();
@@ -59,11 +61,14 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   }, [themeColor]);
 
   // 处理从 URL 打开项目的函数
-  const handleOpenProjectFromUrl = useCallback(async (projectId: string) => {
-    setCurrentProject(projectId);
-    await expandFolderPathToProject(projectId);
-    await loadVersions(projectId);
-  }, [setCurrentProject, expandFolderPathToProject, loadVersions]);
+  const handleOpenProjectFromUrl = useCallback(
+    async (projectId: string) => {
+      setCurrentProject(projectId);
+      await expandFolderPathToProject(projectId);
+      await loadVersions(projectId);
+    },
+    [setCurrentProject, expandFolderPathToProject, loadVersions]
+  );
 
   useEffect(() => {
     // 如果已经初始化过，直接返回
@@ -91,8 +96,12 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
           await handleOpenProjectFromUrl(urlProjectId);
         } else {
           // 项目不存在，提示用户并重置 URL
-          alert(t('errors.projectNotFound'));
-          window.open('/', '_self');
+          useOverlayStore.getState().showToast({
+            message: t('errors.projectNotFound'),
+            variant: 'error',
+          });
+          // 使用 hash 路由，直接回到首页即可（不做整页跳转，避免打断 SPA 状态）
+          window.location.hash = '#/';
         }
       } else if (sampleProjectId) {
         // 如果创建了示例项目，自动加载和选择它

@@ -8,6 +8,7 @@ import { useVersionSearch } from '@/hooks/useVersionSearch';
 import { Icons } from '@/components/icons/Icons';
 import { useTranslation } from '@/i18n/I18nContext';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useOverlayStore } from '@/store/overlayStore';
 
 interface VersionCanvasProps {
   projectId: string | null;
@@ -297,12 +298,22 @@ const VersionCanvas: React.FC<VersionCanvasProps> = ({
   const handleDeleteVersion = async () => {
     if (!selectedVersionId) return;
 
-    if (confirm(t('components.canvas.confirmDelete'))) {
-      try {
-        await deleteVersion(selectedVersionId);
-      } catch (error) {
-        alert(`${t('components.canvas.deleteFailed')}: ${error}`);
-      }
+    const ok = await useOverlayStore.getState().confirmAsync({
+      title: t('common.confirm'),
+      description: t('components.canvas.confirmDelete'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      await deleteVersion(selectedVersionId);
+    } catch (error) {
+      useOverlayStore.getState().showToast({
+        message: `${t('components.canvas.deleteFailed')}: ${error}`,
+        variant: 'error',
+      });
     }
   };
 

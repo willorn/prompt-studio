@@ -5,6 +5,7 @@ import { Icons } from '@/components/icons/Icons';
 import { FolderTree } from './FolderTree';
 import { useTranslation } from '@/i18n/I18nContext';
 import { MinimalButton } from '@/components/common/MinimalButton';
+import { useOverlayStore } from '@/store/overlayStore';
 
 export const Sidebar: React.FC = memo(() => {
   const t = useTranslation();
@@ -18,7 +19,15 @@ export const Sidebar: React.FC = memo(() => {
   }, [loadFolders, loadProjects]);
 
   const handleCreateFolder = async () => {
-    const folderName = prompt(t('components.sidebar.folderName'));
+    const folderName = await useOverlayStore.getState().promptAsync({
+      title: t('components.sidebar.createFolder'),
+      label: t('components.sidebar.folderName'),
+      placeholder: t('components.sidebar.folderName'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      validate: (value) => (value.trim() ? null : '名称不能为空'),
+    });
+
     if (folderName && folderName.trim()) {
       await createFolder(folderName.trim(), null);
       await loadFolders();
@@ -26,7 +35,15 @@ export const Sidebar: React.FC = memo(() => {
   };
 
   const handleCreateProject = async () => {
-    const projectName = prompt(t('components.sidebar.projectName'));
+    const projectName = await useOverlayStore.getState().promptAsync({
+      title: t('components.sidebar.createProject'),
+      label: t('components.sidebar.projectName'),
+      placeholder: t('components.sidebar.projectName'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      validate: (value) => (value.trim() ? null : '名称不能为空'),
+    });
+
     if (projectName && projectName.trim()) {
       let rootFolderId = 'root';
       await loadFolders();

@@ -6,6 +6,7 @@ import type { Project } from '@/models/Project';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
 import { Icons } from '@/components/icons/Icons';
 import { sortByName } from '@/utils/tree';
+import { useOverlayStore } from '@/store/overlayStore';
 
 interface FolderTreeProps {
   onProjectSelect?: (projectId: string) => void;
@@ -118,7 +119,9 @@ const ProjectItem: React.FC<ProjectItemProps> = ({
           size={16}
           className={`flex-shrink-0 ${isSelected ? 'text-primary' : 'text-surface-onVariant'}`}
         />
-        <span className="truncate flex-1 text-text-light-primary/80 dark:text-text-dark-primary/80">{project.name}</span>
+        <span className="truncate flex-1 text-text-light-primary/80 dark:text-text-dark-primary/80">
+          {project.name}
+        </span>
         {project.tags && project.tags.model && (
           <span className="text-[10px] px-1.5 py-0.5 bg-background dark:bg-zinc-800 rounded border border-border dark:border-border-dark text-surface-onVariant opacity-70">
             {project.tags.model}
@@ -228,8 +231,12 @@ const FolderItem: React.FC<TreeItemProps> = ({
         <span className="flex-shrink-0 text-surface-onVariant">
           {isExpanded ? <Icons.FolderOpen size={16} /> : <Icons.Folder size={16} />}
         </span>
-        <span className="flex-1 truncate text-text-light-primary dark:text-text-dark-primary">{folder.name}</span>
-        <span className="text-xs text-text-light-primary/70 dark:text-text-dark-primary/70">{getAllProjectsCount}</span>
+        <span className="flex-1 truncate text-text-light-primary dark:text-text-dark-primary">
+          {folder.name}
+        </span>
+        <span className="text-xs text-text-light-primary/70 dark:text-text-dark-primary/70">
+          {getAllProjectsCount}
+        </span>
       </div>
 
       {isExpanded && (
@@ -374,9 +381,14 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
 
   const handleCreateSubfolder = useCallback(async () => {
     if (folderContextMenu.folder) {
-      const name = prompt('请输入文件夹名称:');
+      const name = await useOverlayStore.getState().promptAsync({
+        title: '创建文件夹',
+        label: '文件夹名称',
+        placeholder: '请输入文件夹名称',
+        validate: (value) => (value.trim() ? null : '名称不能为空'),
+      });
       if (name) {
-        await createFolder(name, folderContextMenu.folder.id);
+        await createFolder(name.trim(), folderContextMenu.folder.id);
         expandFolder(folderContextMenu.folder.id);
         await loadFolders();
       }
@@ -385,19 +397,27 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
 
   const handleFolderRename = useCallback(async () => {
     if (folderContextMenu.folder) {
-      const newName = prompt('请输入新名称:', folderContextMenu.folder.name);
+      const newName = await useOverlayStore.getState().promptAsync({
+        title: '重命名文件夹',
+        label: '新名称',
+        initialValue: folderContextMenu.folder.name,
+        validate: (value) => (value.trim() ? null : '名称不能为空'),
+      });
       if (newName) {
-        await renameFolder(folderContextMenu.folder.id, newName);
+        await renameFolder(folderContextMenu.folder.id, newName.trim());
         await loadFolders();
       }
     }
   }, [folderContextMenu.folder, renameFolder, loadFolders]);
 
   const handleFolderDelete = useCallback(async () => {
-    if (
-      folderContextMenu.folder &&
-      confirm(`确定删除文件夹 "${folderContextMenu.folder.name}" 吗？`)
-    ) {
+    if (!folderContextMenu.folder) return;
+    const ok = await useOverlayStore.getState().confirmAsync({
+      title: '确认删除',
+      description: `确定删除文件夹 "${folderContextMenu.folder.name}" 吗？`,
+      variant: 'danger',
+    });
+    if (ok) {
       await deleteFolder(folderContextMenu.folder.id);
       await loadFolders();
       await loadProjects();
@@ -406,7 +426,12 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
 
   const handleProjectRename = useCallback(async () => {
     if (projectContextMenu.project) {
-      const newName = prompt('请输入新名称:', projectContextMenu.project.name);
+      const newName = await useOverlayStore.getState().promptAsync({
+        title: '重命名项目',
+        label: '新名称',
+        initialValue: projectContextMenu.project.name,
+        validate: (value) => (value.trim() ? null : '名称不能为空'),
+      });
       if (newName && newName.trim()) {
         await renameProject(projectContextMenu.project.id, newName.trim());
       }
@@ -414,10 +439,13 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
   }, [projectContextMenu.project, renameProject]);
 
   const handleProjectDelete = useCallback(async () => {
-    if (
-      projectContextMenu.project &&
-      confirm(`确定删除项目 "${projectContextMenu.project.name}" 吗？`)
-    ) {
+    if (!projectContextMenu.project) return;
+    const ok = await useOverlayStore.getState().confirmAsync({
+      title: '确认删除',
+      description: `确定删除项目 "${projectContextMenu.project.name}" 吗？`,
+      variant: 'danger',
+    });
+    if (ok) {
       await deleteProject(projectContextMenu.project.id);
     }
   }, [projectContextMenu.project, deleteProject]);
@@ -428,7 +456,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
         await moveProject(projectId, folderId);
       } catch (error) {
         console.error('移动项目失败:', error);
-        alert('移动项目失败');
+        useOverlayStore.getState().showToast({ message: '移动项目失败', variant: 'error' });
       }
     },
     [moveProject]
@@ -440,7 +468,13 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
       icon: Icons.File,
       onClick: async () => {
         if (folderContextMenu.folder) {
-          const projectName = prompt('请输入项目名称:');
+          const projectName = await useOverlayStore.getState().promptAsync({
+            title: '创建项目',
+            label: '项目名称',
+            placeholder: '请输入项目名称',
+            validate: (value) => (value.trim() ? null : '名称不能为空'),
+          });
+
           if (projectName && projectName.trim()) {
             const projectId = await createProject(projectName.trim(), folderContextMenu.folder.id);
             await loadProjects();

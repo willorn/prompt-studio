@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { webdavService, type WebDAVConfig } from '@/services/webdavService';
 import { exportService } from '@/services/exportService';
@@ -12,6 +12,7 @@ import { Icons } from '@/components/icons/Icons';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 import { useTranslation } from '@/i18n/I18nContext';
 import { DEFAULT_THEME_COLOR } from '@/styles/tokens';
+import { useOverlayStore } from '@/store/overlayStore';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -36,8 +37,6 @@ const Settings: React.FC = () => {
   const [pendingRestorePath, setPendingRestorePath] = useState<string | null>(null);
   const [configJson, setConfigJson] = useState('');
   const [selectedSection, setSelectedSection] = useState<'local' | 'sync' | 'theme'>('local');
-  const [toastMessage, setToastMessage] = useState('');
-  const toastTimer = useRef<number | null>(null);
 
   const sectionItems = useMemo(
     () => [
@@ -103,15 +102,20 @@ const Settings: React.FC = () => {
       const result = await webdavService.testConnection();
       setIsConnected(result);
       if (result) {
-          alert(t('pages.settings.webdav.connectionSuccess'));
-          await loadBackups();
+        useOverlayStore
+          .getState()
+          .showToast({ message: t('pages.settings.webdav.connectionSuccess'), variant: 'success' });
+        await loadBackups();
       } else {
-        alert(t('pages.settings.webdav.connectionFailed'));
+        useOverlayStore
+          .getState()
+          .showToast({ message: t('pages.settings.webdav.connectionFailed'), variant: 'error' });
       }
     } catch (error) {
-      alert(
-        `${t('pages.settings.webdav.connectionFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-      );
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.webdav.connectionFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+        variant: 'error',
+      });
       setIsConnected(false);
     } finally {
       setTesting(false);
@@ -135,12 +139,15 @@ const Settings: React.FC = () => {
     setLoading(true);
     try {
       await webdavService.backupToWebDAV();
-      alert(t('pages.settings.webdav.backupSuccess'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.settings.webdav.backupSuccess'), variant: 'success' });
       await loadBackups();
     } catch (error) {
-      alert(
-        `${t('pages.settings.webdav.backupFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-      );
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.webdav.backupFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+        variant: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -157,9 +164,10 @@ const Settings: React.FC = () => {
       setBackups(list);
       setShowRestoreModal(true);
     } catch (error) {
-      alert(
-        `${t('pages.settings.errors.loadBackupsFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-      );
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.errors.loadBackupsFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+        variant: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -174,41 +182,57 @@ const Settings: React.FC = () => {
   const handleRestoreWithMode = async (mode: 'merge' | 'overwrite') => {
     if (!pendingRestorePath) return;
 
-    if (!confirm(t('pages.settings.webdav.confirmRestore'))) {
-      return;
-    }
+    const ok = await useOverlayStore.getState().confirmAsync({
+      title: t('common.confirm'),
+      description: t('pages.settings.webdav.confirmRestore'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     setShowRestoreModal(false);
     setShowImportModeDialog(false);
     setLoading(true);
     try {
       await webdavService.restoreFromWebDAV(pendingRestorePath, { mode });
-      alert(t('pages.settings.webdav.restoreSuccess'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.settings.webdav.restoreSuccess'), variant: 'success' });
       window.location.reload();
     } catch (error) {
-      alert(
-        `${t('pages.settings.webdav.restoreFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-      );
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.webdav.restoreFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+        variant: 'error',
+      });
     } finally {
       setLoading(false);
       setPendingRestorePath(null);
     }
   };
   const handleDeleteBackup = async (remotePath: string) => {
-    if (!confirm(t('pages.settings.webdav.confirmDelete'))) {
-      return;
-    }
+    const ok = await useOverlayStore.getState().confirmAsync({
+      title: t('common.confirm'),
+      description: t('pages.settings.webdav.confirmDelete'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     try {
       await webdavService.deleteBackup(remotePath);
-      alert(t('pages.settings.webdav.deleteSuccess'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.settings.webdav.deleteSuccess'), variant: 'success' });
       // 更新备份列表和模态框中的备份列表
       await loadBackups();
       setBackups((prev) => prev.filter((b) => b.path !== remotePath));
     } catch (error) {
-      alert(
-        `${t('pages.settings.webdav.deleteFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-      );
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.webdav.deleteFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+        variant: 'error',
+      });
     }
   };
 
@@ -216,9 +240,10 @@ const Settings: React.FC = () => {
     try {
       await exportService.exportAllAsZip();
     } catch (error) {
-      alert(
-        `${t('pages.settings.local.exportFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-      );
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.local.exportFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+        variant: 'error',
+      });
     }
   };
 
@@ -246,7 +271,12 @@ const Settings: React.FC = () => {
         } else if (pendingImportFile.name.endsWith('.json')) {
           await exportService.importFromJSON(pendingImportFile, { mode });
         } else {
-          alert(t('pages.settings.local.unsupportedFormat'));
+          useOverlayStore
+            .getState()
+            .showToast({
+              message: t('pages.settings.local.unsupportedFormat'),
+              variant: 'warning',
+            });
           return;
         }
 
@@ -254,11 +284,14 @@ const Settings: React.FC = () => {
         await loadFolders();
         await loadProjects();
 
-        alert(t('pages.settings.local.importSuccess'));
+        useOverlayStore
+          .getState()
+          .showToast({ message: t('pages.settings.local.importSuccess'), variant: 'success' });
       } catch (error) {
-        alert(
-          `${t('pages.settings.local.importFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`
-        );
+        useOverlayStore.getState().showToast({
+          message: `${t('pages.settings.local.importFailed')}: ${error instanceof Error ? error.message : t('pages.settings.errors.unknown')}`,
+          variant: 'error',
+        });
       } finally {
         // 清理状态
         setShowImportModeDialog(false);
@@ -305,24 +338,6 @@ const Settings: React.FC = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current) {
-        window.clearTimeout(toastTimer.current);
-      }
-    };
-  }, []);
-
-  const showToast = (message: string, duration = 300) => {
-    if (toastTimer.current) {
-      window.clearTimeout(toastTimer.current);
-    }
-    setToastMessage(message);
-    toastTimer.current = window.setTimeout(() => {
-      setToastMessage('');
-    }, duration);
-  };
-
   // 构建当前配置的 JSON（仅 WebDAV）
   const buildConfigSnapshot = () => {
     return {
@@ -339,19 +354,26 @@ const Settings: React.FC = () => {
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(json);
-        showToast(t('pages.settings.local.configSync.copySuccess'));
+        useOverlayStore.getState().showToast({
+          message: t('pages.settings.local.configSync.copySuccess'),
+          variant: 'success',
+        });
       } else {
         throw new Error('Clipboard API not available');
       }
     } catch (error) {
       console.error('Failed to copy config JSON', error);
-      alert(t('pages.settings.local.configSync.copyFailed'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.settings.local.configSync.copyFailed'), variant: 'error' });
     }
   };
 
   const handleApplyConfigJson = () => {
     if (!configJson.trim()) {
-      alert(t('pages.settings.local.configSync.parseFailed'));
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.settings.local.configSync.parseFailed'), variant: 'error' });
       return;
     }
 
@@ -372,13 +394,17 @@ const Settings: React.FC = () => {
       }
 
       setConfigJson(JSON.stringify(parsed, null, 2));
-      showToast(t('pages.settings.local.configSync.applySuccess'));
+      useOverlayStore.getState().showToast({
+        message: t('pages.settings.local.configSync.applySuccess'),
+        variant: 'success',
+      });
     } catch (error) {
-      alert(
-        `${t('pages.settings.local.configSync.parseFailed')}: ${
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.settings.local.configSync.parseFailed')}: ${
           error instanceof Error ? error.message : t('pages.settings.errors.unknown')
-        }`
-      );
+        }`,
+        variant: 'error',
+      });
     }
   };
 
@@ -631,7 +657,9 @@ const Settings: React.FC = () => {
                           label={t('pages.settings.webdav.serverUrl')}
                           placeholder={serverUrlPlaceholder}
                           value={webdavConfig.url}
-                          onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
+                          onChange={(e) =>
+                            setWebdavConfig({ ...webdavConfig, url: e.target.value })
+                          }
                           className="focus:border-transparent focus:ring-2 focus:ring-primary"
                         />
                       ) : null}
@@ -639,7 +667,9 @@ const Settings: React.FC = () => {
                         label={t('pages.settings.webdav.username')}
                         placeholder="username"
                         value={webdavConfig.username}
-                        onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
+                        onChange={(e) =>
+                          setWebdavConfig({ ...webdavConfig, username: e.target.value })
+                        }
                         className="focus:border-transparent focus:ring-2 focus:ring-primary"
                       />
                       <Input
@@ -647,7 +677,9 @@ const Settings: React.FC = () => {
                         type="password"
                         placeholder="password"
                         value={webdavConfig.password}
-                        onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
+                        onChange={(e) =>
+                          setWebdavConfig({ ...webdavConfig, password: e.target.value })
+                        }
                         className="focus:border-transparent focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -667,7 +699,9 @@ const Settings: React.FC = () => {
                         </MinimalButton>
                         {isConnected && (
                           <span className="flex items-center text-sm text-primary font-medium shrink-0">
-                            <span className="material-symbols-outlined text-lg mr-1">check_circle</span>
+                            <span className="material-symbols-outlined text-lg mr-1">
+                              check_circle
+                            </span>
                             {t('pages.settings.webdav.connected')}
                           </span>
                         )}
@@ -684,7 +718,9 @@ const Settings: React.FC = () => {
                             <span>{t('pages.settings.webdav.backingUp')}</span>
                           ) : (
                             <>
-                              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                              <span className="material-symbols-outlined text-[18px]">
+                                cloud_upload
+                              </span>
                               <span>{t('pages.settings.webdav.backupToWebdav')}</span>
                             </>
                           )}
@@ -695,7 +731,9 @@ const Settings: React.FC = () => {
                           disabled={loading || !isConfigValid}
                           className="flex-1 sm:flex-none px-4 py-2.5 text-sm gap-2"
                         >
-                          <span className="material-symbols-outlined text-[18px]">cloud_download</span>
+                          <span className="material-symbols-outlined text-[18px]">
+                            cloud_download
+                          </span>
                           <span>{t('pages.settings.webdav.restoreFromWebdav')}</span>
                         </MinimalButton>
                       </div>
@@ -766,12 +804,6 @@ const Settings: React.FC = () => {
         onClose={handleCancelImportMode}
         onConfirm={handleImportWithMode}
       />
-
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-[2000] px-4 py-2 rounded-lg shadow-lg bg-surface text-surface-onSurface dark:bg-surface-dark dark:text-surface-onSurfaceDark border border-border dark:border-border-dark transition-opacity">
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 };

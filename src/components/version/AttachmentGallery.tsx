@@ -8,6 +8,7 @@ import { useTranslation } from '@/i18n/I18nContext';
 import { VersionMetaCard } from './VersionMetaCard';
 import { useVersionStore } from '@/store/versionStore';
 import { MinimalButton } from '@/components/common/MinimalButton';
+import { useOverlayStore } from '@/store/overlayStore';
 
 interface AttachmentGalleryProps {
   versionId: string;
@@ -52,7 +53,9 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
   }, [previewIndex, previewableAttachments]);
 
   const previewUrl = useMemo(() => {
-    return currentPreviewAttachment ? attachmentManager.getPreviewUrl(currentPreviewAttachment) : null;
+    return currentPreviewAttachment
+      ? attachmentManager.getPreviewUrl(currentPreviewAttachment)
+      : null;
   }, [currentPreviewAttachment]);
 
   const handleFileSelect = useCallback(
@@ -92,14 +95,23 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
 
   const handleDelete = useCallback(
     async (attachmentId: string) => {
-      if (confirm(t('components.attachmentGallery.confirmDelete'))) {
-        try {
-          await attachmentManager.deleteAttachment(attachmentId);
-          onAttachmentsChange();
-        } catch (error) {
-          console.error('删除附件失败:', error);
-          alert(t('components.attachmentGallery.deleteFailed'));
-        }
+      const ok = await useOverlayStore.getState().confirmAsync({
+        title: t('common.confirm'),
+        description: t('components.attachmentGallery.confirmDelete'),
+        confirmText: t('common.delete'),
+        cancelText: t('common.cancel'),
+        variant: 'danger',
+      });
+      if (!ok) return;
+
+      try {
+        await attachmentManager.deleteAttachment(attachmentId);
+        onAttachmentsChange();
+      } catch (error) {
+        console.error('删除附件失败:', error);
+        useOverlayStore
+          .getState()
+          .showToast({ message: t('components.attachmentGallery.deleteFailed'), variant: 'error' });
       }
     },
     [onAttachmentsChange, t]
@@ -112,7 +124,12 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
     } else {
       // 视频或其他不支持预览的类型，或者文件丢失
       if (attachment.isMissing) {
-        alert(t('components.attachmentGallery.fileMissing'));
+        useOverlayStore
+          .getState()
+          .showToast({
+            message: t('components.attachmentGallery.fileMissing'),
+            variant: 'warning',
+          });
       }
     }
   };
@@ -121,13 +138,23 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
     async (attachment: Attachment) => {
       try {
         if (attachment.isMissing) {
-          alert(t('components.attachmentGallery.fileMissing'));
+          useOverlayStore
+            .getState()
+            .showToast({
+              message: t('components.attachmentGallery.fileMissing'),
+              variant: 'warning',
+            });
           return;
         }
         await attachmentManager.downloadAttachment(attachment.id);
       } catch (error) {
         console.error('下载附件失败:', error);
-        alert(t('components.attachmentGallery.downloadFailed'));
+        useOverlayStore
+          .getState()
+          .showToast({
+            message: t('components.attachmentGallery.downloadFailed'),
+            variant: 'error',
+          });
       }
     },
     [t]
@@ -192,111 +219,113 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
           {attachments
             .sort((a, b) => b.id.localeCompare(a.id))
             .map((attachment) => (
-            <motion.div
-              key={attachment.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className={`
+              <motion.div
+                key={attachment.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                className={`
                 relative group w-full h-full aspect-square rounded-xl overflow-hidden border border-border dark:border-border-dark
                 shadow-sm hover:shadow-md transition-all bg-background dark:bg-zinc-800
                 ${attachment.isMissing ? 'border-error/50' : ''}
               `}
-            >
-              {/* Main Content Area - Click to Preview */}
-              <div
-                className={`w-full h-full ${
-                  attachment.isMissing ? 'cursor-not-allowed' : 'cursor-pointer'
-                }`}
-                onClick={() =>
-                  !attachment.isMissing && isImage(attachment.fileType) && handlePreview(attachment)
-                }
               >
-                {attachment.isMissing ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-error/5">
-                    <Icons.Warning size={20} className="text-error mb-1" />
-                    <div className="text-xs text-error font-medium">
-                      {t('components.attachmentGallery.attachmentMissing')}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {isImage(attachment.fileType) && (
-                      <img
-                        src={attachmentManager.getPreviewUrl(attachment) || ''}
-                        alt={attachment.fileName}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {isVideo(attachment.fileType) && (
-                      <div className="w-full h-full flex items-center justify-center bg-black/5 relative">
-                        <video
-                          src={attachmentManager.getPreviewUrl(attachment) || ''}
-                          className="w-full h-full object-cover opacity-80"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-3xl text-white/80 drop-shadow-md">
-                            play_circle
-                          </span>
-                        </div>
+                {/* Main Content Area - Click to Preview */}
+                <div
+                  className={`w-full h-full ${
+                    attachment.isMissing ? 'cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                  onClick={() =>
+                    !attachment.isMissing &&
+                    isImage(attachment.fileType) &&
+                    handlePreview(attachment)
+                  }
+                >
+                  {attachment.isMissing ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-error/5">
+                      <Icons.Warning size={20} className="text-error mb-1" />
+                      <div className="text-xs text-error font-medium">
+                        {t('components.attachmentGallery.attachmentMissing')}
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
+                    </div>
+                  ) : (
+                    <>
+                      {isImage(attachment.fileType) && (
+                        <img
+                          src={attachmentManager.getPreviewUrl(attachment) || ''}
+                          alt={attachment.fileName}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {isVideo(attachment.fileType) && (
+                        <div className="w-full h-full flex items-center justify-center bg-black/5 relative">
+                          <video
+                            src={attachmentManager.getPreviewUrl(attachment) || ''}
+                            className="w-full h-full object-cover opacity-80"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-3xl text-white/80 drop-shadow-md">
+                              play_circle
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
-              {/* Top Actions Overlay - Visible on Hover */}
-              {!attachment.isMissing && (
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  {isImage(attachment.fileType) && (
+                {/* Top Actions Overlay - Visible on Hover */}
+                {!attachment.isMissing && (
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    {isImage(attachment.fileType) && (
+                      <MinimalButton
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePreview(attachment);
+                        }}
+                        className="p-1.5 !backdrop-blur-3xl !bg-surface-containerHighest/60 text-surface-onSurface rounded-md shadow-sm "
+                        title={t('components.attachmentGallery.preview')}
+                      >
+                        <Icons.Eye size={12} />
+                      </MinimalButton>
+                    )}
                     <MinimalButton
                       variant="ghost"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handlePreview(attachment);
+                        handleDownload(attachment);
                       }}
                       className="p-1.5 !backdrop-blur-3xl !bg-surface-containerHighest/60 text-surface-onSurface rounded-md shadow-sm "
-                      title={t('components.attachmentGallery.preview')}
+                      title={t('components.attachmentGallery.download')}
                     >
-                      <Icons.Eye size={12} />
+                      <Icons.Download size={12} />
                     </MinimalButton>
-                  )}
-                  <MinimalButton
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(attachment);
-                    }}
-                    className="p-1.5 !backdrop-blur-3xl !bg-surface-containerHighest/60 text-surface-onSurface rounded-md shadow-sm "
-                    title={t('components.attachmentGallery.download')}
-                  >
-                    <Icons.Download size={12} />
-                  </MinimalButton>
-                  {!readonly && (
-                    <MinimalButton
-                      variant="danger"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(attachment.id);
-                      }}
-                      className="p-1.5 !backdrop-blur-3xl"
-                      title={t('common.delete')}
-                    >
-                      <Icons.Trash size={12} />
-                    </MinimalButton>
-                  )}
-                </div>
-              )}
+                    {!readonly && (
+                      <MinimalButton
+                        variant="danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(attachment.id);
+                        }}
+                        className="p-1.5 !backdrop-blur-3xl"
+                        title={t('common.delete')}
+                      >
+                        <Icons.Trash size={12} />
+                      </MinimalButton>
+                    )}
+                  </div>
+                )}
 
-              {/* File Name Footer */}
-              {!attachment.isMissing && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white text-[10px] p-2 pt-6 truncate pointer-events-none">
-                  {attachment.fileName}
-                </div>
-              )}
-            </motion.div>
-          ))}
+                {/* File Name Footer */}
+                {!attachment.isMissing && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white text-[10px] p-2 pt-6 truncate pointer-events-none">
+                    {attachment.fileName}
+                  </div>
+                )}
+              </motion.div>
+            ))}
         </AnimatePresence>
       </div>
 
