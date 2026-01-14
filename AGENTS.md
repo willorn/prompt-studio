@@ -1,9 +1,11 @@
 # Repository Guidelines
 
-## 重要
+## 一、AI 行为约束（最高优先级）
 
 - 保留注释，不要轻易删除注释
 - 必须使用中文回复
+- 在编码前需先分析需求与潜在边界条件，再给出实现
+- 优先一次性给出完整方案，避免拆分成多轮修改
 
 ## Project Structure & Module Organization
 - `src/` holds all app code: `components/` (UI atoms/molecules), `pages/` (route views), `store/` (Zustand state), `services/` (API/diff helpers), `db/` (Dexie), `styles/` & `theme/` (Tailwind tokens, CSS vars), `utils/` (shared helpers), `test/` (unit helper utils).  
