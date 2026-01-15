@@ -1,0 +1,28 @@
+<svg
+  width="64"
+  height="64"
+  viewBox="0 0 512 512"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient id="bg" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#749E68" />
+      <stop offset="1" stop-color="#638A58" />
+    </linearGradient>
+  </defs>
+
+  <!-- favicon 需要极简：避免过多细节导致 16px 下糊掉 -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bg)" />
+
+  <g stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+    <path d="M256 160V352" />
+    <path d="M256 256H336" />
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="256" cy="160" r="26" />
+    <circle cx="256" cy="352" r="26" />
+    <circle cx="336" cy="256" r="26" />
+  </g>
+</svg>
+

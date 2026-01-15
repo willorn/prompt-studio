@@ -19,17 +19,20 @@ const hexToRgb = (hex: string) => {
 };
 
 const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) =>
-  `#${[r, g, b]
-    .map((c) => clamp(Math.round(c)).toString(16).padStart(2, '0'))
-    .join('')}`;
+  `#${[r, g, b].map((c) => clamp(Math.round(c)).toString(16).padStart(2, '0')).join('')}`;
 
-const mix = (base: { r: number; g: number; b: number }, target: { r: number; g: number; b: number }, ratio: number) => ({
+const mix = (
+  base: { r: number; g: number; b: number },
+  target: { r: number; g: number; b: number },
+  ratio: number
+) => ({
   r: clamp(base.r * (1 - ratio) + target.r * ratio),
   g: clamp(base.g * (1 - ratio) + target.g * ratio),
   b: clamp(base.b * (1 - ratio) + target.b * ratio),
 });
 
-const toRgbString = ({ r, g, b }: { r: number; g: number; b: number }) => `${Math.round(r)} ${Math.round(g)} ${Math.round(b)}`;
+const toRgbString = ({ r, g, b }: { r: number; g: number; b: number }) =>
+  `${Math.round(r)} ${Math.round(g)} ${Math.round(b)}`;
 
 const getLuminance = ({ r, g, b }: { r: number; g: number; b: number }) => {
   const srgb = [r, g, b].map((v) => {
@@ -52,7 +55,8 @@ const derivePalette = (primaryHex: string) => {
   const container = mix(base, { r: 255, g: 255, b: 255 }, 0.82); // 更浅
   const containerDark = mix(base, { r: 0, g: 0, b: 0 }, 0.7); // 更深
 
-  const onPrimary = getLuminance(base) > 0.55 ? { r: 28, g: 28, b: 28 } : { r: 255, g: 255, b: 255 };
+  const onPrimary =
+    getLuminance(base) > 0.55 ? { r: 28, g: 28, b: 28 } : { r: 255, g: 255, b: 255 };
   const onContainer = { r: 26, g: 58, b: 15 }; // 与默认保持一致的深色
   const onContainerDark = mix(onContainer, { r: 255, g: 255, b: 255 }, 0.75);
 

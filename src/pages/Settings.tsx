@@ -271,12 +271,10 @@ const Settings: React.FC = () => {
         } else if (pendingImportFile.name.endsWith('.json')) {
           await exportService.importFromJSON(pendingImportFile, { mode });
         } else {
-          useOverlayStore
-            .getState()
-            .showToast({
-              message: t('pages.settings.local.unsupportedFormat'),
-              variant: 'warning',
-            });
+          useOverlayStore.getState().showToast({
+            message: t('pages.settings.local.unsupportedFormat'),
+            variant: 'warning',
+          });
           return;
         }
 

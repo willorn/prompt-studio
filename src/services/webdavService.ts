@@ -179,7 +179,8 @@ export class WebDAVService {
       console.log(`备份成功: ${remotePath}`);
     } catch (error) {
       console.error('WebDAV 备份失败:', error);
-      const errorMessage = error instanceof Error ? error.message : t('pages.settings.errors.unknown');
+      const errorMessage =
+        error instanceof Error ? error.message : t('pages.settings.errors.unknown');
       throw new Error(`${t('pages.settings.webdav.backupFailed')}: ${errorMessage}`);
     }
   }
@@ -219,7 +220,8 @@ export class WebDAVService {
         .sort((a, b) => new Date(b.lastMod).getTime() - new Date(a.lastMod).getTime());
     } catch (error) {
       console.error('获取备份列表失败:', error);
-      const errorMessage = error instanceof Error ? error.message : t('pages.settings.errors.unknown');
+      const errorMessage =
+        error instanceof Error ? error.message : t('pages.settings.errors.unknown');
       throw new Error(`${t('pages.settings.errors.loadBackupsFailed')}: ${errorMessage}`);
     }
   }
@@ -251,7 +253,8 @@ export class WebDAVService {
       console.log(`删除备份成功: ${remotePath}`);
     } catch (error) {
       console.error('删除备份失败:', error);
-      const errorMessage = error instanceof Error ? error.message : t('pages.settings.errors.unknown');
+      const errorMessage =
+        error instanceof Error ? error.message : t('pages.settings.errors.unknown');
       throw new Error(`${t('pages.settings.webdav.deleteFailed')}: ${errorMessage}`);
     }
   }

@@ -169,10 +169,7 @@ export class ImportService {
       if (!isZip) {
         let snippet = '';
         try {
-          snippet = new TextDecoder()
-            .decode(bytes.slice(0, 200))
-            .replace(/\s+/g, ' ')
-            .trim();
+          snippet = new TextDecoder().decode(bytes.slice(0, 200)).replace(/\s+/g, ' ').trim();
         } catch {
           // ignore decode errors
         }

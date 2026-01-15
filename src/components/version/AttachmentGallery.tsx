@@ -124,12 +124,10 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
     } else {
       // 视频或其他不支持预览的类型，或者文件丢失
       if (attachment.isMissing) {
-        useOverlayStore
-          .getState()
-          .showToast({
-            message: t('components.attachmentGallery.fileMissing'),
-            variant: 'warning',
-          });
+        useOverlayStore.getState().showToast({
+          message: t('components.attachmentGallery.fileMissing'),
+          variant: 'warning',
+        });
       }
     }
   };
@@ -138,23 +136,19 @@ const AttachmentGalleryComponent: React.FC<AttachmentGalleryProps> = ({
     async (attachment: Attachment) => {
       try {
         if (attachment.isMissing) {
-          useOverlayStore
-            .getState()
-            .showToast({
-              message: t('components.attachmentGallery.fileMissing'),
-              variant: 'warning',
-            });
+          useOverlayStore.getState().showToast({
+            message: t('components.attachmentGallery.fileMissing'),
+            variant: 'warning',
+          });
           return;
         }
         await attachmentManager.downloadAttachment(attachment.id);
       } catch (error) {
         console.error('下载附件失败:', error);
-        useOverlayStore
-          .getState()
-          .showToast({
-            message: t('components.attachmentGallery.downloadFailed'),
-            variant: 'error',
-          });
+        useOverlayStore.getState().showToast({
+          message: t('components.attachmentGallery.downloadFailed'),
+          variant: 'error',
+        });
       }
     },
     [t]

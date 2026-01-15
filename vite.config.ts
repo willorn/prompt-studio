@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico'],
+      includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Prompt Studio',
         short_name: 'Prompt Studio',
