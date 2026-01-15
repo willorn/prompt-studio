@@ -9,7 +9,7 @@ import { sortByName } from '@/utils/tree';
 import { useOverlayStore } from '@/store/overlayStore';
 
 interface FolderTreeProps {
-  onProjectSelect?: (projectId: string) => void;
+  onProjectSelect?: (projectId: string) => void | Promise<void>;
 }
 
 interface TreeItemProps {
@@ -19,6 +19,7 @@ interface TreeItemProps {
   onToggle: (folderId: string) => void;
   expanded: Set<string>;
   onProjectDrop: (projectId: string, folderId: string) => void;
+  onProjectSelect?: (projectId: string) => void | Promise<void>;
   onCloseAllMenus?: () => void;
 }
 
@@ -139,6 +140,7 @@ const FolderItem: React.FC<TreeItemProps> = ({
   onToggle,
   expanded,
   onProjectDrop,
+  onProjectSelect,
   onCloseAllMenus,
 }) => {
   const { folders, projects } = useProjectStore();
@@ -250,6 +252,7 @@ const FolderItem: React.FC<TreeItemProps> = ({
               onToggle={onToggle}
               expanded={expanded}
               onProjectDrop={onProjectDrop}
+              onProjectSelect={onProjectSelect}
               onCloseAllMenus={onCloseAllMenus}
             />
           ))}
@@ -260,6 +263,7 @@ const FolderItem: React.FC<TreeItemProps> = ({
               level={level + 1}
               onCloseAllMenus={onCloseAllMenus}
               onContextMenu={(e, item) => onContextMenu(e, item)}
+              onProjectSelect={onProjectSelect}
             />
           ))}
         </div>
@@ -273,10 +277,15 @@ const ProjectItemConnected: React.FC<{
   level: number;
   onCloseAllMenus?: () => void;
   onContextMenu: (e: React.MouseEvent, item: Folder | Project) => void;
-}> = ({ project, level, onCloseAllMenus, onContextMenu }) => {
+  onProjectSelect?: (projectId: string) => void | Promise<void>;
+}> = ({ project, level, onCloseAllMenus, onContextMenu, onProjectSelect }) => {
   const { currentProjectId, selectProject, expandFolderPathToProject } = useProjectStore();
 
   const handleSelect = async (projectId: string) => {
+    if (onProjectSelect) {
+      await onProjectSelect(projectId);
+      return;
+    }
     selectProject(projectId, { updateUrl: true });
     await expandFolderPathToProject(projectId);
   };
@@ -293,7 +302,7 @@ const ProjectItemConnected: React.FC<{
   );
 };
 
-export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProjectSelect }) => {
+export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect }) => {
   const {
     folders,
     projects,
@@ -478,7 +487,11 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
           if (projectName && projectName.trim()) {
             const projectId = await createProject(projectName.trim(), folderContextMenu.folder.id);
             await loadProjects();
-            selectProject(projectId, { updateUrl: true });
+            if (onProjectSelect) {
+              await onProjectSelect(projectId);
+            } else {
+              selectProject(projectId, { updateUrl: true });
+            }
             expandFolder(folderContextMenu.folder.id);
           }
         }
@@ -564,6 +577,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
               onToggle={handleToggle}
               expanded={expanded}
               onProjectDrop={moveProjectToFolder}
+              onProjectSelect={onProjectSelect}
               onCloseAllMenus={handleCloseAllMenus}
             />
           ))}
@@ -574,6 +588,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ onProjectSelect: _onProj
               level={0}
               onCloseAllMenus={handleCloseAllMenus}
               onContextMenu={handleItemContextMenu}
+              onProjectSelect={onProjectSelect}
             />
           ))}
         </div>

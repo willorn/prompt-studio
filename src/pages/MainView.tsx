@@ -78,16 +78,95 @@ const MainView: React.FC = () => {
     () => window.innerWidth < 1024
   );
 
+  const currentVersion = useMemo(() => {
+    if (!currentVersionId) return null;
+    return versions.find((v) => v.id === currentVersionId) || null;
+  }, [currentVersionId, versions]);
+
+  const currentVersionSnapshot = useMemo(() => {
+    return {
+      content: currentVersion?.content ?? '',
+      name: currentVersion?.name ?? '',
+    };
+  }, [currentVersion]);
+
+  // Dirty 定义：编辑器内容/版本名 与当前版本快照不一致（或者当前未选版本时，与空快照不一致）
+  const isDirty = useMemo(() => {
+    if (!currentProjectId) return false;
+    return (
+      editorContent !== currentVersionSnapshot.content ||
+      versionName !== currentVersionSnapshot.name
+    );
+  }, [
+    currentProjectId,
+    editorContent,
+    versionName,
+    currentVersionSnapshot.content,
+    currentVersionSnapshot.name,
+  ]);
+
+  const confirmUnsavedChangesAndContinue = useCallback(async () => {
+    if (!isDirty) return true;
+
+    const choice = await useOverlayStore.getState().unsavedChangesAsync({
+      title: t('pages.mainView.unsavedChanges.title'),
+      description: t('pages.mainView.unsavedChanges.description'),
+      keepText: t('pages.mainView.unsavedChanges.keep'),
+      discardText: t('pages.mainView.unsavedChanges.discard'),
+      cancelText: t('pages.mainView.unsavedChanges.cancel'),
+    });
+
+    if (choice === 'cancel') return false;
+    if (choice === 'discard') return true;
+
+    // keep：优先原地保存；若尚未选中版本，则保存为新版本
+    const ok = currentVersionId ? await handleSaveInPlace() : await handleSave();
+    return ok;
+  }, [
+    currentProjectId,
+    currentVersionId,
+    editorContent,
+    handleSave,
+    handleSaveInPlace,
+    isDirty,
+    t,
+    versionName,
+  ]);
+
   // 处理版本树中的节点点击
-  const handleVersionNodeClick = useCallback((versionId: string) => {
-    const { compareMode, compareState, setCompareTarget, setCurrentVersion } =
-      useVersionStore.getState();
-    if (compareMode && compareState.sourceVersionId && versionId !== compareState.sourceVersionId) {
-      setCompareTarget(versionId);
-    } else {
-      setCurrentVersion(versionId);
-    }
-  }, []);
+  const handleVersionNodeClick = useCallback(
+    (versionId: string) => {
+      const { compareMode, compareState, setCompareTarget, setCurrentVersion } =
+        useVersionStore.getState();
+      if (
+        compareMode &&
+        compareState.sourceVersionId &&
+        versionId !== compareState.sourceVersionId
+      ) {
+        setCompareTarget(versionId);
+      } else {
+        void (async () => {
+          if (versionId === currentVersionId) return;
+          const ok = await confirmUnsavedChangesAndContinue();
+          if (!ok) return;
+          setCurrentVersion(versionId);
+        })();
+      }
+    },
+    [confirmUnsavedChangesAndContinue, currentVersionId]
+  );
+
+  const handleProjectSelect = useCallback(
+    async (projectId: string) => {
+      if (projectId === currentProjectId) return;
+      const ok = await confirmUnsavedChangesAndContinue();
+      if (!ok) return;
+
+      useProjectStore.getState().selectProject(projectId, { updateUrl: true });
+      await useProjectStore.getState().expandFolderPathToProject(projectId);
+    },
+    [confirmUnsavedChangesAndContinue, currentProjectId]
+  );
 
   const loadAttachments = useCallback(
     async (versionId: string) => {
@@ -127,6 +206,8 @@ const MainView: React.FC = () => {
 
   useEffect(() => {
     if (currentProjectId && versions.length > 0) {
+      // 有未保存变更时，不自动切换版本，避免静默覆盖编辑内容
+      if (isDirty) return;
       const currentVersion = currentVersionId
         ? versions.find((v) => v.id === currentVersionId)
         : null;
@@ -138,7 +219,17 @@ const MainView: React.FC = () => {
         }
       }
     }
-  }, [currentProjectId, versions, currentVersionId, setCurrentVersion]);
+  }, [currentProjectId, versions, currentVersionId, setCurrentVersion, isDirty]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   useEffect(() => {
     if (currentVersionId && currentProjectId) {
@@ -163,12 +254,12 @@ const MainView: React.FC = () => {
     }
   }, [currentProjectId, currentVersionId, loadAttachments, versions]);
 
-  const handleSave = async () => {
+  async function handleSave(): Promise<boolean> {
     if (!currentProjectId) {
       useOverlayStore
         .getState()
         .showToast({ message: t('pages.mainView.errors.selectProjectFirst'), variant: 'warning' });
-      return;
+      return false;
     }
     try {
       const versionId = await createVersion(
@@ -180,15 +271,19 @@ const MainView: React.FC = () => {
       );
       setCurrentVersion(versionId);
       await loadVersions(currentProjectId);
+      useOverlayStore.getState().showToast({
+        message: t('pages.mainView.toasts.saved'),
+        variant: 'success',
+      });
+      return true;
     } catch (error) {
-      useOverlayStore
-        .getState()
-        .showToast({
-          message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
-          variant: 'error',
-        });
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
+        variant: 'error',
+      });
+      return false;
     }
-  };
+  }
 
   const handleConfirmDuplicateCreate = async () => {
     if (!pendingSaveData) return;
@@ -206,12 +301,10 @@ const MainView: React.FC = () => {
       setDuplicateVersion(null);
       setPendingSaveData(null);
     } catch (error) {
-      useOverlayStore
-        .getState()
-        .showToast({
-          message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
-          variant: 'error',
-        });
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
+        variant: 'error',
+      });
     }
   };
 
@@ -221,25 +314,29 @@ const MainView: React.FC = () => {
     setPendingSaveData(null);
   };
 
-  const handleSaveInPlace = async () => {
+  async function handleSaveInPlace(): Promise<boolean> {
     if (!currentVersionId) {
       useOverlayStore
         .getState()
         .showToast({ message: t('pages.mainView.errors.selectVersionFirst'), variant: 'warning' });
-      return;
+      return false;
     }
     try {
       await updateVersionInPlace(currentVersionId, editorContent, versionName);
       await loadVersions(currentProjectId!);
+      useOverlayStore.getState().showToast({
+        message: t('pages.mainView.toasts.saved'),
+        variant: 'success',
+      });
+      return true;
     } catch (error) {
-      useOverlayStore
-        .getState()
-        .showToast({
-          message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
-          variant: 'error',
-        });
+      useOverlayStore.getState().showToast({
+        message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
+        variant: 'error',
+      });
+      return false;
     }
-  };
+  }
 
   const handleUploadFiles = useCallback(
     async (files: FileList) => {
@@ -336,6 +433,11 @@ const MainView: React.FC = () => {
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
+          {currentProjectId && isDirty && (
+            <span className="text-xs px-2 py-1 rounded-full bg-white/10 border border-white/20 text-white/90">
+              {t('pages.mainView.unsaved')}
+            </span>
+          )}
 
           <a
             href="https://github.com/JoeyLearnsToCode/prompt-studio"
@@ -349,7 +451,13 @@ const MainView: React.FC = () => {
 
           <MinimalButton
             variant="ghost"
-            onClick={() => navigate('/settings')}
+            onClick={() => {
+              void (async () => {
+                const ok = await confirmUnsavedChangesAndContinue();
+                if (!ok) return;
+                navigate('/settings');
+              })();
+            }}
             className="h-9 w-9 !text-white/90 !hover:text-white hover:bg-white/10"
             aria-label={t('common.settings')}
           >
@@ -361,7 +469,7 @@ const MainView: React.FC = () => {
       {/* 主要内容区域 - Updated Layout with Gap and Padding */}
       <div className="flex-1 flex overflow-hidden p-2 gap-2">
         {/* 左侧边栏 */}
-        <Sidebar />
+        <Sidebar onProjectSelect={handleProjectSelect} />
 
         {/* 中央和右侧区域包装器 */}
         <div className="flex-1 flex overflow-hidden w-0 min-w-0" ref={mainSplitContainerRef}>
@@ -437,7 +545,7 @@ const MainView: React.FC = () => {
                   <MinimalButton
                     variant="default"
                     onClick={handleSaveInPlace}
-                    disabled={!canSaveInPlace || !currentProjectId}
+                    disabled={!canSaveInPlace || !currentProjectId || !isDirty}
                     title={`${t('components.toolbar.saveInPlace')} (Ctrl+S / Ctrl+Enter)`}
                     className="whitespace-nowrap flex-shrink-0 px-3 py-1.5 text-sm"
                   >

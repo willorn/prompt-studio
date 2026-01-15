@@ -42,6 +42,18 @@ export const enUS: TranslationData = {
       versionName: 'Version Name',
       versionNamePlaceholder: '(Optional) Add a name for this version',
       attachments: 'Attachments',
+      unsaved: 'Unsaved',
+      unsavedChanges: {
+        title: 'Unsaved changes',
+        description: 'You have unsaved changes. Continuing will overwrite them.',
+        keep: 'Keep',
+        discard: 'Discard',
+        cancel: 'Cancel',
+      },
+      toasts: {
+        saved: 'Saved',
+        savedNewVersion: 'Saved as a new version',
+      },
     },
 
     settings: {
@@ -68,7 +80,8 @@ export const enUS: TranslationData = {
             'Copy current WebDAV settings as JSON and paste on another device to speed up setup.',
           copyJson: 'Generate & Copy JSON',
           applyJson: 'Apply from JSON',
-          placeholder: 'Paste config JSON here, or click above to generate from current settings...',
+          placeholder:
+            'Paste config JSON here, or click above to generate from current settings...',
           copySuccess: 'Config copied to clipboard',
           copyFailed: 'Copy failed, please copy manually',
           parseFailed: 'Failed to parse JSON, please check the format',

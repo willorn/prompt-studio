@@ -37,6 +37,20 @@ export interface PromptOptions {
   validate?: (value: string) => string | null;
 }
 
+export type UnsavedChangesResult = 'keep' | 'discard' | 'cancel';
+
+export interface UnsavedChangesOptions {
+  title: string;
+  description?: string;
+  keepText?: string;
+  discardText?: string;
+  cancelText?: string;
+}
+
+interface UnsavedChangesState extends Required<Omit<UnsavedChangesOptions, 'description'>> {
+  description?: string;
+}
+
 interface PromptState
   extends Required<
     Omit<PromptOptions, 'description' | 'label' | 'placeholder' | 'initialValue' | 'validate'>
@@ -52,10 +66,12 @@ interface OverlayState {
   toasts: ToastItem[];
   confirm: ConfirmState | null;
   prompt: PromptState | null;
+  unsavedChanges: UnsavedChangesState | null;
 
   // 注意：resolver 用于把用户选择返回给调用方（Promise）。它是运行时函数，属于 UI 层逻辑。
   confirmResolver: ((result: boolean) => void) | null;
   promptResolver: ((result: string | null) => void) | null;
+  unsavedChangesResolver: ((result: UnsavedChangesResult) => void) | null;
 
   showToast: (options: ToastOptions) => string;
   dismissToast: (id: string) => void;
@@ -66,14 +82,19 @@ interface OverlayState {
 
   promptAsync: (options: PromptOptions) => Promise<string | null>;
   resolvePrompt: (result: string | null) => void;
+
+  unsavedChangesAsync: (options: UnsavedChangesOptions) => Promise<UnsavedChangesResult>;
+  resolveUnsavedChanges: (result: UnsavedChangesResult) => void;
 }
 
 export const useOverlayStore = create<OverlayState>((set, get) => ({
   toasts: [],
   confirm: null,
   prompt: null,
+  unsavedChanges: null,
   confirmResolver: null,
   promptResolver: null,
+  unsavedChangesResolver: null,
 
   showToast: ({ message, variant = 'info', durationMs = 3000 }) => {
     const id = nanoid();
@@ -157,5 +178,33 @@ export const useOverlayStore = create<OverlayState>((set, get) => ({
     const resolver = get().promptResolver;
     if (resolver) resolver(result);
     set({ prompt: null, promptResolver: null });
+  },
+
+  unsavedChangesAsync: async (options) => {
+    const existingResolver = get().unsavedChangesResolver;
+    if (existingResolver) {
+      existingResolver('cancel');
+    }
+
+    const state: UnsavedChangesState = {
+      title: options.title,
+      description: options.description,
+      keepText: options.keepText ?? '保留',
+      discardText: options.discardText ?? '丢弃',
+      cancelText: options.cancelText ?? '取消',
+    };
+
+    return new Promise<UnsavedChangesResult>((resolve) => {
+      set({
+        unsavedChanges: state,
+        unsavedChangesResolver: resolve,
+      });
+    });
+  },
+
+  resolveUnsavedChanges: (result) => {
+    const resolver = get().unsavedChangesResolver;
+    if (resolver) resolver(result);
+    set({ unsavedChanges: null, unsavedChangesResolver: null });
   },
 }));

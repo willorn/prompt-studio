@@ -7,7 +7,9 @@ import { useTranslation } from '@/i18n/I18nContext';
 import { MinimalButton } from '@/components/common/MinimalButton';
 import { useOverlayStore } from '@/store/overlayStore';
 
-export const Sidebar: React.FC = memo(() => {
+export const Sidebar: React.FC<{
+  onProjectSelect?: (projectId: string) => void | Promise<void>;
+}> = memo(({ onProjectSelect }) => {
   const t = useTranslation();
   const { sidebarCollapsed, sidebarTemporarilyExpanded } = useUiStore();
   const { loadFolders, loadProjects, createFolder, createProject, selectProject } =
@@ -49,7 +51,11 @@ export const Sidebar: React.FC = memo(() => {
       await loadFolders();
       const projectId = await createProject(projectName.trim(), rootFolderId);
       await loadProjects();
-      selectProject(projectId, { updateUrl: true });
+      if (onProjectSelect) {
+        await onProjectSelect(projectId);
+      } else {
+        selectProject(projectId, { updateUrl: true });
+      }
     }
   };
 
@@ -91,7 +97,7 @@ export const Sidebar: React.FC = memo(() => {
 
         {/* Tree */}
         <div className="flex-1">
-          <FolderTree />
+          <FolderTree onProjectSelect={onProjectSelect} />
         </div>
       </div>
     </aside>

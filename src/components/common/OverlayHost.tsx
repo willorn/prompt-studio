@@ -28,6 +28,9 @@ export const OverlayHost: React.FC = () => {
   const prompt = useOverlayStore((s) => s.prompt);
   const resolvePrompt = useOverlayStore((s) => s.resolvePrompt);
 
+  const unsavedChanges = useOverlayStore((s) => s.unsavedChanges);
+  const resolveUnsavedChanges = useOverlayStore((s) => s.resolveUnsavedChanges);
+
   const [promptValue, setPromptValue] = useState('');
   const [promptError, setPromptError] = useState<string | null>(null);
 
@@ -143,6 +146,44 @@ export const OverlayHost: React.FC = () => {
             disabled={!canSubmitPrompt}
           >
             {prompt?.confirmText ?? '确定'}
+          </MinimalButton>
+        </div>
+      </Modal>
+
+      {/* Unsaved Changes */}
+      <Modal
+        isOpen={!!unsavedChanges}
+        onClose={() => resolveUnsavedChanges('cancel')}
+        title={unsavedChanges?.title}
+        size="small"
+      >
+        {unsavedChanges?.description && (
+          <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
+            {unsavedChanges.description}
+          </p>
+        )}
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <MinimalButton
+            variant="ghost"
+            onClick={() => resolveUnsavedChanges('cancel')}
+            className="px-4 py-2"
+          >
+            {unsavedChanges?.cancelText ?? '取消'}
+          </MinimalButton>
+          <MinimalButton
+            variant="danger"
+            onClick={() => resolveUnsavedChanges('discard')}
+            className="px-4 py-2"
+          >
+            {unsavedChanges?.discardText ?? '丢弃'}
+          </MinimalButton>
+          <MinimalButton
+            variant="default"
+            onClick={() => resolveUnsavedChanges('keep')}
+            className="px-4 py-2"
+            autoFocus
+          >
+            {unsavedChanges?.keepText ?? '保留'}
           </MinimalButton>
         </div>
       </Modal>

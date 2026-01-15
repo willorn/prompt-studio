@@ -42,6 +42,18 @@ export const zhCN: TranslationData = {
       versionName: '版本名称',
       versionNamePlaceholder: '(可选) 为版本添加名称',
       attachments: '附件',
+      unsaved: '未保存',
+      unsavedChanges: {
+        title: '未保存的更改',
+        description: '当前有未保存的更改，继续操作将覆盖这些内容。',
+        keep: '保留',
+        discard: '丢弃',
+        cancel: '取消',
+      },
+      toasts: {
+        saved: '已保存',
+        savedNewVersion: '已保存为新版本',
+      },
     },
 
     settings: {

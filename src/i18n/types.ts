@@ -88,6 +88,18 @@ export interface TranslationData {
       versionName: string;
       versionNamePlaceholder: string;
       attachments: string;
+      unsaved: string;
+      unsavedChanges: {
+        title: string;
+        description: string;
+        keep: string;
+        discard: string;
+        cancel: string;
+      };
+      toasts: {
+        saved: string;
+        savedNewVersion: string;
+      };
     };
 
     /** 设置页 */
