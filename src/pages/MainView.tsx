@@ -55,6 +55,8 @@ const MainView: React.FC = () => {
   const [versionName, setVersionName] = useState('');
   const [canSaveInPlace, setCanSaveInPlace] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [savingAction, setSavingAction] = useState<'inPlace' | 'new' | null>(null);
+  const [lastSaveFailed, setLastSaveFailed] = useState(false);
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const mainSplitContainerRef = useRef<HTMLDivElement>(null);
@@ -105,8 +107,16 @@ const MainView: React.FC = () => {
     currentVersionSnapshot.name,
   ]);
 
+  const isSaving = savingAction !== null;
+
   const confirmUnsavedChangesAndContinue = useCallback(async () => {
     if (!isDirty) return true;
+    if (isSaving) {
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.mainView.toasts.savingInProgress'), variant: 'warning' });
+      return false;
+    }
 
     const choice = await useOverlayStore.getState().unsavedChangesAsync({
       title: t('pages.mainView.unsavedChanges.title'),
@@ -129,6 +139,7 @@ const MainView: React.FC = () => {
     handleSave,
     handleSaveInPlace,
     isDirty,
+    isSaving,
     t,
     versionName,
   ]);
@@ -255,12 +266,20 @@ const MainView: React.FC = () => {
   }, [currentProjectId, currentVersionId, loadAttachments, versions]);
 
   async function handleSave(): Promise<boolean> {
+    if (isSaving) {
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.mainView.toasts.savingInProgress'), variant: 'warning' });
+      return false;
+    }
     if (!currentProjectId) {
       useOverlayStore
         .getState()
         .showToast({ message: t('pages.mainView.errors.selectProjectFirst'), variant: 'warning' });
       return false;
     }
+    setSavingAction('new');
+    setLastSaveFailed(false);
     try {
       const versionId = await createVersion(
         currentProjectId,
@@ -277,11 +296,14 @@ const MainView: React.FC = () => {
       });
       return true;
     } catch (error) {
+      setLastSaveFailed(true);
       useOverlayStore.getState().showToast({
         message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
         variant: 'error',
       });
       return false;
+    } finally {
+      setSavingAction(null);
     }
   }
 
@@ -315,12 +337,20 @@ const MainView: React.FC = () => {
   };
 
   async function handleSaveInPlace(): Promise<boolean> {
+    if (isSaving) {
+      useOverlayStore
+        .getState()
+        .showToast({ message: t('pages.mainView.toasts.savingInProgress'), variant: 'warning' });
+      return false;
+    }
     if (!currentVersionId) {
       useOverlayStore
         .getState()
         .showToast({ message: t('pages.mainView.errors.selectVersionFirst'), variant: 'warning' });
       return false;
     }
+    setSavingAction('inPlace');
+    setLastSaveFailed(false);
     try {
       await updateVersionInPlace(currentVersionId, editorContent, versionName);
       await loadVersions(currentProjectId!);
@@ -330,11 +360,14 @@ const MainView: React.FC = () => {
       });
       return true;
     } catch (error) {
+      setLastSaveFailed(true);
       useOverlayStore.getState().showToast({
         message: `${t('pages.mainView.errors.saveFailed')}: ${error}`,
         variant: 'error',
       });
       return false;
+    } finally {
+      setSavingAction(null);
     }
   }
 
@@ -435,7 +468,7 @@ const MainView: React.FC = () => {
           <ThemeToggle />
           {currentProjectId && isDirty && (
             <span className="text-xs px-2 py-1 rounded-full bg-white/10 border border-white/20 text-white/90">
-              {t('pages.mainView.unsaved')}
+              {lastSaveFailed ? t('pages.mainView.unsavedSaveFailed') : t('pages.mainView.unsaved')}
             </span>
           )}
 
@@ -545,26 +578,46 @@ const MainView: React.FC = () => {
                   <MinimalButton
                     variant="default"
                     onClick={handleSaveInPlace}
-                    disabled={!canSaveInPlace || !currentProjectId || !isDirty}
+                    disabled={!canSaveInPlace || !currentProjectId || !isDirty || isSaving}
                     title={`${t('components.toolbar.saveInPlace')} (Ctrl+S / Ctrl+Enter)`}
                     className="whitespace-nowrap flex-shrink-0 px-3 py-1.5 text-sm"
                   >
-                    <span className="inline @xs:hidden">
-                      <Icons.Save />
-                    </span>
-                    <span className="hidden @xs:inline">{t('components.toolbar.saveInPlace')}</span>
+                    {savingAction === 'inPlace' ? (
+                      <>
+                        <span className="inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span className="hidden @xs:inline">{t('pages.mainView.saving')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline @xs:hidden">
+                          <Icons.Save />
+                        </span>
+                        <span className="hidden @xs:inline">
+                          {t('components.toolbar.saveInPlace')}
+                        </span>
+                      </>
+                    )}
                   </MinimalButton>
                   <MinimalButton
                     variant="default"
                     onClick={handleSave}
-                    disabled={!currentProjectId}
+                    disabled={!currentProjectId || isSaving}
                     title={`${t('components.toolbar.saveNew')} (Ctrl+Shift+S / Ctrl+Shift+Enter)`}
                     className="whitespace-nowrap flex-shrink-0 px-3 py-1.5 text-sm"
                   >
-                    <span className="inline @xs:hidden">
-                      <Icons.SaveNew />
-                    </span>
-                    <span className="hidden @xs:inline">{t('components.toolbar.saveNew')}</span>
+                    {savingAction === 'new' ? (
+                      <>
+                        <span className="inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span className="hidden @xs:inline">{t('pages.mainView.saving')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline @xs:hidden">
+                          <Icons.SaveNew />
+                        </span>
+                        <span className="hidden @xs:inline">{t('components.toolbar.saveNew')}</span>
+                      </>
+                    )}
                   </MinimalButton>
                 </div>
               </div>

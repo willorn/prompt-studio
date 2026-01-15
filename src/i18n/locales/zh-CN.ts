@@ -43,6 +43,8 @@ export const zhCN: TranslationData = {
       versionNamePlaceholder: '(可选) 为版本添加名称',
       attachments: '附件',
       unsaved: '未保存',
+      unsavedSaveFailed: '未保存（保存失败）',
+      saving: '保存中...',
       unsavedChanges: {
         title: '未保存的更改',
         description: '当前有未保存的更改，继续操作将覆盖这些内容。',
@@ -53,6 +55,7 @@ export const zhCN: TranslationData = {
       toasts: {
         saved: '已保存',
         savedNewVersion: '已保存为新版本',
+        savingInProgress: '正在保存，请稍候',
       },
     },
 

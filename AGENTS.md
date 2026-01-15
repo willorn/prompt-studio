@@ -6,6 +6,8 @@
 - 必须使用中文回复
 - 在编码前需先分析需求与潜在边界条件，再给出实现
 - 优先一次性给出完整方案，避免拆分成多轮修改
+- 禁止执行任何 `git` 相关命令或修改 `.git/` 目录（包括但不限于：`git status/diff/log/checkout/commit/reset/clean/push` 等）
+  - 如确需获取 git 信息（例如变更列表/提交历史），请用户自行在本机执行并把输出粘贴给 AI
 
 ## Project Structure & Module Organization
 - `src/` holds all app code: `components/` (UI atoms/molecules), `pages/` (route views), `store/` (Zustand state), `services/` (API/diff helpers), `db/` (Dexie), `styles/` & `theme/` (Tailwind tokens, CSS vars), `utils/` (shared helpers), `test/` (unit helper utils).  

@@ -89,6 +89,8 @@ export interface TranslationData {
       versionNamePlaceholder: string;
       attachments: string;
       unsaved: string;
+      unsavedSaveFailed: string;
+      saving: string;
       unsavedChanges: {
         title: string;
         description: string;
@@ -99,6 +101,7 @@ export interface TranslationData {
       toasts: {
         saved: string;
         savedNewVersion: string;
+        savingInProgress: string;
       };
     };
 

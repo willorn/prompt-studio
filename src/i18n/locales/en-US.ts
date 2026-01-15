@@ -43,6 +43,8 @@ export const enUS: TranslationData = {
       versionNamePlaceholder: '(Optional) Add a name for this version',
       attachments: 'Attachments',
       unsaved: 'Unsaved',
+      unsavedSaveFailed: 'Unsaved (save failed)',
+      saving: 'Saving...',
       unsavedChanges: {
         title: 'Unsaved changes',
         description: 'You have unsaved changes. Continuing will overwrite them.',
@@ -53,6 +55,7 @@ export const enUS: TranslationData = {
       toasts: {
         saved: 'Saved',
         savedNewVersion: 'Saved as a new version',
+        savingInProgress: 'Saving... please wait',
       },
     },
 
