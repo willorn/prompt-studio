@@ -5,56 +5,83 @@
   fill="none"
   xmlns="http://www.w3.org/2000/svg"
 >
+  <!-- Keep the same design as 512 for consistency -->
   <defs>
-    <!-- 品牌主色：与默认主题色一致（Sage Green 系） -->
     <linearGradient id="bg" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#749E68" />
       <stop offset="1" stop-color="#638A58" />
     </linearGradient>
-
-    <!-- 中央亮点：轻微高光，避免小尺寸下糊成一坨 -->
-    <linearGradient id="spark" x1="256" y1="190" x2="256" y2="322" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bulbFill" x1="256" y1="128" x2="256" y2="384" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.98" />
       <stop offset="1" stop-color="#E8F5E9" stop-opacity="0.95" />
     </linearGradient>
-
     <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feGaussianBlur stdDeviation="8" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- iOS/Android/PWA 建议：使用带圆角底色的图标，tab/favicon 也更稳定 -->
   <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bg)" />
 
-  <!-- “版本树/分支”图形：白色线稿，小尺寸识别更清晰 -->
-  <g stroke="#FFFFFF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
-    <path d="M256 140V372" />
-    <path d="M256 232H176" />
-    <path d="M256 300H336" />
-  </g>
-
-  <g fill="#FFFFFF">
-    <circle cx="256" cy="140" r="22" />
-    <circle cx="256" cy="232" r="22" />
-    <circle cx="256" cy="372" r="22" />
-    <circle cx="176" cy="232" r="22" />
-    <circle cx="336" cy="300" r="22" />
-  </g>
-
-  <!-- “AI 灵感/生成”亮点：简洁四向星形 -->
-  <path
-    d="M256 190
-       C268 230 282 244 322 256
-       C282 268 268 282 256 322
-       C244 282 230 268 190 256
-       C230 244 244 230 256 190Z"
-    fill="url(#spark)"
+  <g
     stroke="#FFFFFF"
-    stroke-width="10"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.92"
+  >
+    <path d="M256 108V136" />
+    <path d="M170 142L190 160" />
+    <path d="M342 142L322 160" />
+    <path d="M144 224H172" />
+    <path d="M368 224H340" />
+  </g>
+
+  <path
+    d="M256 140
+       C200 140 156 184 156 242
+       C156 286 180 324 214 346
+       C230 356 240 374 240 392
+       V404
+       C240 412 246 418 254 418
+       H258
+       C266 418 272 412 272 404
+       V392
+       C272 374 282 356 298 346
+       C332 324 356 286 356 242
+       C356 184 312 140 256 140Z"
+    fill="url(#bulbFill)"
+    stroke="#FFFFFF"
+    stroke-width="14"
     stroke-linejoin="round"
     filter="url(#softGlow)"
     opacity="0.98"
   />
-</svg>
 
+  <g
+    stroke="#1A3A0F"
+    stroke-width="14"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.9"
+  >
+    <path d="M256 240V294" />
+    <path d="M256 260H222" />
+    <path d="M256 282H292" />
+  </g>
+  <g fill="#1A3A0F" opacity="0.9">
+    <circle cx="256" cy="240" r="10" />
+    <circle cx="222" cy="260" r="10" />
+    <circle cx="292" cy="282" r="10" />
+    <circle cx="256" cy="294" r="10" />
+  </g>
+
+  <g fill="#FFFFFF" opacity="0.96">
+    <rect x="208" y="404" width="96" height="30" rx="12" />
+    <rect x="214" y="434" width="84" height="34" rx="12" />
+  </g>
+  <g stroke="#749E68" stroke-width="10" stroke-linecap="round" opacity="0.7">
+    <path d="M224 444H288" />
+    <path d="M224 456H288" />
+  </g>
+</svg>

@@ -20,7 +20,6 @@ const getToastClasses = (variant: ToastVariant) => {
 
 export const OverlayHost: React.FC = () => {
   const toasts = useOverlayStore((s) => s.toasts);
-  const dismissToast = useOverlayStore((s) => s.dismissToast);
 
   const confirm = useOverlayStore((s) => s.confirm);
   const resolveConfirm = useOverlayStore((s) => s.resolveConfirm);
@@ -70,7 +69,7 @@ export const OverlayHost: React.FC = () => {
             id={toast.id}
             message={toast.message}
             durationMs={toast.durationMs}
-            onClose={() => dismissToast(toast.id)}
+            createdAt={toast.createdAt}
             className={getToastClasses(toast.variant)}
           />
         ))}
@@ -195,14 +194,17 @@ const ToastItem: React.FC<{
   id: string;
   message: string;
   durationMs: number;
-  onClose: () => void;
+  createdAt: number;
   className: string;
-}> = ({ id, message, durationMs, onClose, className }) => {
+}> = ({ id, message, durationMs, createdAt, className }) => {
+  const dismissToast = useOverlayStore((s) => s.dismissToast);
+
   useEffect(() => {
     if (!durationMs || durationMs <= 0) return;
-    const timer = window.setTimeout(() => onClose(), durationMs);
+    // createdAt 变化时，重新开始计时：用于“从最后一次触发开始计时”的 toast 体验
+    const timer = window.setTimeout(() => dismissToast(id), durationMs);
     return () => window.clearTimeout(timer);
-  }, [durationMs, id, onClose]);
+  }, [createdAt, dismissToast, durationMs, id]);
 
   return (
     <div
@@ -214,7 +216,7 @@ const ToastItem: React.FC<{
         <button
           type="button"
           className="text-surface-onVariant dark:text-surface-onVariantDark hover:text-surface-onSurface dark:hover:text-surface-onSurfaceDark"
-          onClick={onClose}
+          onClick={() => dismissToast(id)}
           aria-label="关闭提示"
         >
           ×

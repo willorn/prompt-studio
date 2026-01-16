@@ -7,6 +7,10 @@ export interface ToastOptions {
   message: string;
   variant?: ToastVariant;
   durationMs?: number;
+  /**
+   * 具有相同 key 的 toast 会被“复用/刷新”（更新时间戳），用于避免重复堆叠并实现“从最后一次点击开始计时”。
+   */
+  key?: string;
 }
 
 interface ToastItem extends Required<ToastOptions> {
@@ -96,17 +100,42 @@ export const useOverlayStore = create<OverlayState>((set, get) => ({
   promptResolver: null,
   unsavedChangesResolver: null,
 
-  showToast: ({ message, variant = 'info', durationMs = 3000 }) => {
+  showToast: ({ message, variant = 'info', durationMs = 3000, key = '' }) => {
+    const now = Date.now();
+    const normalizedKey = key.trim();
+
+    // 若提供 key，则复用现有 toast（刷新 createdAt），实现“从最后一次触发开始计时”
+    if (normalizedKey) {
+      const existing = get().toasts.find((t) => t.key === normalizedKey);
+      if (existing) {
+        set((state) => ({
+          toasts: state.toasts.map((t) =>
+            t.id === existing.id
+              ? {
+                  ...t,
+                  message,
+                  variant,
+                  durationMs,
+                  createdAt: now,
+                }
+              : t
+          ),
+        }));
+        return existing.id;
+      }
+    }
+
     const id = nanoid();
     set((state) => ({
       toasts: [
         ...state.toasts,
         {
           id,
+          key: normalizedKey,
           message,
           variant,
           durationMs,
-          createdAt: Date.now(),
+          createdAt: now,
         },
       ],
     }));

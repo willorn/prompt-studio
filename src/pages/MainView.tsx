@@ -112,9 +112,12 @@ const MainView: React.FC = () => {
   const confirmUnsavedChangesAndContinue = useCallback(async () => {
     if (!isDirty) return true;
     if (isSaving) {
-      useOverlayStore
-        .getState()
-        .showToast({ message: t('pages.mainView.toasts.savingInProgress'), variant: 'warning' });
+      useOverlayStore.getState().showToast({
+        message: t('pages.mainView.toasts.savingInProgress'),
+        variant: 'warning',
+        durationMs: 1500,
+        key: 'save-in-progress',
+      });
       return false;
     }
 
@@ -267,9 +270,12 @@ const MainView: React.FC = () => {
 
   async function handleSave(): Promise<boolean> {
     if (isSaving) {
-      useOverlayStore
-        .getState()
-        .showToast({ message: t('pages.mainView.toasts.savingInProgress'), variant: 'warning' });
+      useOverlayStore.getState().showToast({
+        message: t('pages.mainView.toasts.savingInProgress'),
+        variant: 'warning',
+        durationMs: 1500,
+        key: 'save-in-progress',
+      });
       return false;
     }
     if (!currentProjectId) {
@@ -293,6 +299,8 @@ const MainView: React.FC = () => {
       useOverlayStore.getState().showToast({
         message: t('pages.mainView.toasts.saved'),
         variant: 'success',
+        durationMs: 2000,
+        key: 'save',
       });
       return true;
     } catch (error) {
@@ -338,9 +346,12 @@ const MainView: React.FC = () => {
 
   async function handleSaveInPlace(): Promise<boolean> {
     if (isSaving) {
-      useOverlayStore
-        .getState()
-        .showToast({ message: t('pages.mainView.toasts.savingInProgress'), variant: 'warning' });
+      useOverlayStore.getState().showToast({
+        message: t('pages.mainView.toasts.savingInProgress'),
+        variant: 'warning',
+        durationMs: 1500,
+        key: 'save-in-progress',
+      });
       return false;
     }
     if (!currentVersionId) {
@@ -357,6 +368,8 @@ const MainView: React.FC = () => {
       useOverlayStore.getState().showToast({
         message: t('pages.mainView.toasts.saved'),
         variant: 'success',
+        durationMs: 2000,
+        key: 'save',
       });
       return true;
     } catch (error) {

@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import { useOverlayStore } from './overlayStore';
 
 afterEach(() => {
@@ -29,5 +29,26 @@ describe('overlayStore.unsavedChangesAsync', () => {
 
     useOverlayStore.getState().resolveUnsavedChanges('keep');
     await expect(second).resolves.toBe('keep');
+  });
+});
+
+describe('overlayStore.showToast', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('相同 key 会复用 toast，并以最后一次触发时间重新计时（刷新 createdAt）', () => {
+    const now = vi.spyOn(Date, 'now');
+    now.mockReturnValueOnce(1000);
+    const id1 = useOverlayStore.getState().showToast({ message: 'A', key: 'save' });
+    expect(useOverlayStore.getState().toasts).toHaveLength(1);
+    expect(useOverlayStore.getState().toasts[0].createdAt).toBe(1000);
+
+    now.mockReturnValueOnce(2000);
+    const id2 = useOverlayStore.getState().showToast({ message: 'B', key: 'save' });
+    expect(id2).toBe(id1);
+    expect(useOverlayStore.getState().toasts).toHaveLength(1);
+    expect(useOverlayStore.getState().toasts[0].message).toBe('B');
+    expect(useOverlayStore.getState().toasts[0].createdAt).toBe(2000);
   });
 });
