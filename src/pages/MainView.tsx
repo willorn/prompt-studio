@@ -20,6 +20,15 @@ import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Icons } from '@/components/icons/Icons';
 import { useOverlayStore } from '@/store/overlayStore';
+import { DraftBanner } from '@/components/common/DraftBanner';
+import { DraftSwitchDialog } from '@/components/common/DraftSwitchDialog';
+import {
+  draftService,
+  isDraftDifferentFromSnapshot,
+  type DraftData,
+} from '@/services/draftService';
+import { computeContentHash } from '@/utils/hash';
+import { db } from '@/db/schema';
 
 const LazyCompareModal = React.lazy(() =>
   import('@/components/version/CompareModal').then((mod) => ({ default: mod.CompareModal }))
@@ -58,11 +67,58 @@ const MainView: React.FC = () => {
   const [savingAction, setSavingAction] = useState<'inPlace' | 'new' | null>(null);
   const [lastSaveFailed, setLastSaveFailed] = useState(false);
 
+  // 刷新/进入版本时：不阻塞，只提示“发现未保存内容”（用户可继续浏览）
+  const [draftNotice, setDraftNotice] = useState<{
+    projectId: string;
+    versionId: string;
+    snapshot: { content: string; versionName: string; updatedAt: number | null; displayName: string };
+    draft: DraftData;
+  } | null>(null);
+
+  // 切换版本/切换项目时：必须先决策（规范：稍后=不切换）
+  const [draftSwitchPrompt, setDraftSwitchPrompt] = useState<{
+    intent:
+      | { type: 'switchVersion'; projectId: string; targetVersionId: string }
+      | { type: 'switchProject'; targetProjectId: string; targetVersionId: string };
+    snapshot: { content: string; versionName: string; updatedAt: number | null; displayName: string };
+    draft: DraftData;
+  } | null>(null);
+
+  const [draftCompare, setDraftCompare] = useState<{
+    isOpen: boolean;
+    sourceVersion: Version | null;
+    targetVersion: Version | null;
+    title?: string;
+  }>({ isOpen: false, sourceVersion: null, targetVersion: null });
+
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const mainSplitContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<PromptEditorRef>(null);
   const versionNameInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // 自动保存草稿：定期落盘，避免崩溃/误关丢失
+  const draftDebounceTimerRef = useRef<number | null>(null);
+  const lastDraftSavedAtRef = useRef(0);
+
+  // 用于“切换项目时预选版本”（避免被 currentProjectId effect 清空 currentVersionId）
+  const pendingProjectInitialVersionIdRef = useRef<string | null>(null);
+
+  // 用户在“恢复草稿”弹窗中选择恢复后，需要在版本加载时优先应用草稿内容
+  const pendingDraftApplyRef = useRef<{
+    projectId: string;
+    versionId: string | null;
+    draft: DraftData;
+  } | null>(null);
+
+  // 记录“用户关闭过提示条”的草稿，避免重复打扰（draftKey + draftUpdatedAt）
+  const snoozedDraftRef = useRef<Set<string>>(new Set());
+
+  // 防止 versions 刷新时覆盖用户正在编辑的内容：只在版本切换时把快照写入编辑器
+  const lastAppliedRef = useRef<{ projectId: string | null; versionId: string | null }>({
+    projectId: null,
+    versionId: null,
+  });
 
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [duplicateVersion, setDuplicateVersion] = useState<Version | null>(null);
@@ -89,8 +145,17 @@ const MainView: React.FC = () => {
     return {
       content: currentVersion?.content ?? '',
       name: currentVersion?.name ?? '',
+      updatedAt: currentVersion?.updatedAt ?? null,
     };
   }, [currentVersion]);
+
+  const getDraftSnoozeKey = useCallback(
+    (projectId: string, versionId: string | null, draftUpdatedAt: number) => {
+      const bucket = versionId ?? '__new__';
+      return `${projectId}:${bucket}:${draftUpdatedAt}`;
+    },
+    []
+  );
 
   // Dirty 定义：编辑器内容/版本名 与当前版本快照不一致（或者当前未选版本时，与空快照不一致）
   const isDirty = useMemo(() => {
@@ -130,7 +195,13 @@ const MainView: React.FC = () => {
     });
 
     if (choice === 'cancel') return false;
-    if (choice === 'discard') return true;
+    if (choice === 'discard') {
+      // 丢弃当前编辑内容时，也应清理当前桶草稿（避免后续错误提示/误恢复）
+      if (currentProjectId) {
+        draftService.deleteDraft(currentProjectId, currentVersionId);
+      }
+      return true;
+    }
 
     // keep：优先原地保存；若尚未选中版本，则保存为新版本
     const ok = currentVersionId ? await handleSaveInPlace() : await handleSave();
@@ -147,11 +218,139 @@ const MainView: React.FC = () => {
     versionName,
   ]);
 
+  const openDraftFullDiff = useCallback(
+    (
+      snapshot: {
+        content: string;
+        versionName: string;
+        updatedAt: number | null;
+        displayName: string;
+      },
+      draft: DraftData
+    ) => {
+      const projectId = draft.projectId;
+      const source: Version = {
+        id: `snapshot-${projectId}-${draft.versionId ?? 'new'}`,
+        projectId,
+        parentId: null,
+        createdAt: snapshot.updatedAt ?? Date.now(),
+        updatedAt: snapshot.updatedAt ?? Date.now(),
+        content: snapshot.content,
+        contentHash: computeContentHash(snapshot.content),
+        name: snapshot.versionName,
+      };
+
+      const target: Version = {
+        id: `draft-${projectId}-${draft.versionId ?? 'new'}`,
+        projectId,
+        parentId: null,
+        createdAt: draft.draftUpdatedAt,
+        updatedAt: draft.draftUpdatedAt,
+        content: draft.content,
+        contentHash: computeContentHash(draft.content),
+        name: draft.versionName,
+      };
+
+      setDraftCompare({
+        isOpen: true,
+        sourceVersion: source,
+        targetVersion: target,
+        title: t('pages.mainView.drafts.viewDiff'),
+      });
+    },
+    [t]
+  );
+
+  const requestSwitchVersion = useCallback(
+    async (versionId: string) => {
+      if (!currentProjectId) return;
+      if (versionId === currentVersionId) return;
+
+      const ok = await confirmUnsavedChangesAndContinue();
+      if (!ok) return;
+
+      const targetVersion = versions.find((v) => v.id === versionId) || null;
+      if (!targetVersion) {
+        setCurrentVersion(versionId);
+        return;
+      }
+
+      const snapshot = {
+        content: targetVersion.content,
+        versionName: targetVersion.name || '',
+        updatedAt: targetVersion.updatedAt,
+        displayName: targetVersion.name || `版本 ${targetVersion.id.slice(0, 8)}`,
+      };
+
+      const draft = draftService.getDraft(currentProjectId, versionId);
+      if (!draft || !isDraftDifferentFromSnapshot(draft, snapshot)) {
+        setCurrentVersion(versionId);
+        return;
+      }
+
+      setDraftSwitchPrompt({
+        intent: { type: 'switchVersion', projectId: currentProjectId, targetVersionId: versionId },
+        snapshot,
+        draft,
+      });
+    },
+    [
+      confirmUnsavedChangesAndContinue,
+      currentProjectId,
+      currentVersionId,
+      setCurrentVersion,
+      versions,
+    ]
+  );
+
+  const requestSwitchProject = useCallback(
+    async (projectId: string) => {
+      if (projectId === currentProjectId) return;
+
+      const ok = await confirmUnsavedChangesAndContinue();
+      if (!ok) return;
+
+      // 预先计算该项目默认打开的版本（与现有自动选择逻辑一致：updatedAt 最大）
+      const projectVersions = await db.versions.where('projectId').equals(projectId).toArray();
+      const sorted = [...projectVersions].sort((a, b) => b.updatedAt - a.updatedAt);
+      const target = sorted[0] || null;
+
+      if (!target) {
+        // 空项目理论上不会发生（创建项目会有根版本），这里兜底
+        pendingProjectInitialVersionIdRef.current = null;
+        useProjectStore.getState().selectProject(projectId, { updateUrl: true });
+        await useProjectStore.getState().expandFolderPathToProject(projectId);
+        return;
+      }
+
+      const snapshot = {
+        content: target.content,
+        versionName: target.name || '',
+        updatedAt: target.updatedAt,
+        displayName: target.name || `版本 ${target.id.slice(0, 8)}`,
+      };
+
+      const draft = draftService.getDraft(projectId, target.id);
+      if (draft && isDraftDifferentFromSnapshot(draft, snapshot)) {
+        setDraftSwitchPrompt({
+          intent: { type: 'switchProject', targetProjectId: projectId, targetVersionId: target.id },
+          snapshot,
+          draft,
+        });
+        return;
+      }
+
+      pendingProjectInitialVersionIdRef.current = target.id;
+      useProjectStore.getState().selectProject(projectId, { updateUrl: true });
+      await useProjectStore.getState().expandFolderPathToProject(projectId);
+    },
+    [confirmUnsavedChangesAndContinue, currentProjectId]
+  );
+
   // 处理版本树中的节点点击
   const handleVersionNodeClick = useCallback(
     (versionId: string) => {
-      const { compareMode, compareState, setCompareTarget, setCurrentVersion } =
-        useVersionStore.getState();
+      const { compareMode, compareState, setCompareTarget } = useVersionStore.getState();
       if (
         compareMode &&
         compareState.sourceVersionId &&
@@ -159,27 +358,17 @@ const MainView: React.FC = () => {
       ) {
         setCompareTarget(versionId);
       } else {
-        void (async () => {
-          if (versionId === currentVersionId) return;
-          const ok = await confirmUnsavedChangesAndContinue();
-          if (!ok) return;
-          setCurrentVersion(versionId);
-        })();
+        void requestSwitchVersion(versionId);
       }
     },
-    [confirmUnsavedChangesAndContinue, currentVersionId]
+    [requestSwitchVersion]
   );
 
   const handleProjectSelect = useCallback(
     async (projectId: string) => {
-      if (projectId === currentProjectId) return;
-      const ok = await confirmUnsavedChangesAndContinue();
-      if (!ok) return;
-
-      useProjectStore.getState().selectProject(projectId, { updateUrl: true });
-      await useProjectStore.getState().expandFolderPathToProject(projectId);
+      void requestSwitchProject(projectId);
     },
-    [confirmUnsavedChangesAndContinue, currentProjectId]
+    [requestSwitchProject]
   );
 
   const loadAttachments = useCallback(
@@ -222,6 +411,18 @@ const MainView: React.FC = () => {
     if (currentProjectId && versions.length > 0) {
       // 有未保存变更时，不自动切换版本，避免静默覆盖编辑内容
       if (isDirty) return;
+
+      // 若项目切换时提前计算了“应打开的版本”，优先使用它
+      const pendingVersionId = pendingProjectInitialVersionIdRef.current;
+      if (pendingVersionId) {
+        const pending = versions.find((v) => v.id === pendingVersionId) || null;
+        if (pending && pending.projectId === currentProjectId) {
+          pendingProjectInitialVersionIdRef.current = null;
+          setCurrentVersion(pendingVersionId);
+          return;
+        }
+      }
+
       const currentVersion = currentVersionId
         ? versions.find((v) => v.id === currentVersionId)
         : null;
@@ -246,27 +447,142 @@ const MainView: React.FC = () => {
   }, [isDirty]);
 
   useEffect(() => {
-    if (currentVersionId && currentProjectId) {
-      const version = versions.find((v) => v.id === currentVersionId);
-      if (version) {
-        setEditorContent(version.content);
-        setVersionName(version.name || '');
-        setCanSaveInPlace(true);
-        void loadAttachments(currentVersionId);
-        setTimeout(() => {
-          editorRef.current?.focus();
-        }, 100);
+    if (!currentProjectId) return;
+    if (!isDirty) return;
+    if (isSaving) return;
+    // 防止“版本刚加载/切换中”的短暂 dirty 被自动落盘成空草稿，导致刷新后误提示
+    if (
+      currentVersionId &&
+      (lastAppliedRef.current.projectId !== currentProjectId ||
+        lastAppliedRef.current.versionId !== currentVersionId)
+    ) {
+      return;
+    }
+
+    const debounceMs = 1000;
+    const throttleMs = 5000;
+
+    const saveNow = () => {
+      // 草稿是“当前编辑状态”的落盘：以当前版本快照为 base
+      draftService.saveDraft({
+        projectId: currentProjectId,
+        versionId: currentVersionId,
+        content: editorContent,
+        versionName,
+        baseUpdatedAt: currentVersionSnapshot.updatedAt,
+        baseContent: currentVersionSnapshot.content,
+      });
+      lastDraftSavedAtRef.current = Date.now();
+    };
+
+    const now = Date.now();
+    if (now - lastDraftSavedAtRef.current >= throttleMs) {
+      saveNow();
+    }
+
+    if (draftDebounceTimerRef.current) {
+      window.clearTimeout(draftDebounceTimerRef.current);
+    }
+    draftDebounceTimerRef.current = window.setTimeout(() => {
+      saveNow();
+    }, debounceMs);
+
+    return () => {
+      if (draftDebounceTimerRef.current) {
+        window.clearTimeout(draftDebounceTimerRef.current);
+        draftDebounceTimerRef.current = null;
       }
-    } else {
+    };
+  }, [
+    currentProjectId,
+    currentVersionId,
+    currentVersionSnapshot.content,
+    currentVersionSnapshot.updatedAt,
+    editorContent,
+    isDirty,
+    isSaving,
+    versionName,
+  ]);
+
+  useEffect(() => {
+    // 未选项目/版本：清空编辑器
+    if (!currentProjectId || !currentVersionId) {
+      lastAppliedRef.current = { projectId: currentProjectId ?? null, versionId: null };
       setEditorContent('');
       setVersionName('');
       setAttachments([]);
       setCanSaveInPlace(false);
+      setDraftNotice(null);
       setTimeout(() => {
         editorRef.current?.focus();
       }, 100);
+      return;
     }
-  }, [currentProjectId, currentVersionId, loadAttachments, versions]);
+
+    // 防止 versions 刷新时覆盖编辑器：只在“版本切换”时写入快照
+    const isSwitch =
+      lastAppliedRef.current.projectId !== currentProjectId ||
+      lastAppliedRef.current.versionId !== currentVersionId;
+    if (!isSwitch) return;
+
+    const version = versions.find((v) => v.id === currentVersionId) || null;
+    if (!version) return;
+
+    const snapshot = {
+      content: version.content,
+      versionName: version.name || '',
+      updatedAt: version.updatedAt,
+      displayName: version.name || `版本 ${version.id.slice(0, 8)}`,
+    };
+
+    // 进入新版本前先清理旧提示，避免残留到其他版本
+    setDraftNotice(null);
+
+    // 如果本次切换明确选择了“恢复草稿”，则优先应用草稿
+    const pendingApply = pendingDraftApplyRef.current;
+    if (
+      pendingApply &&
+      pendingApply.projectId === currentProjectId &&
+      pendingApply.versionId === currentVersionId
+    ) {
+      pendingDraftApplyRef.current = null;
+      lastAppliedRef.current = { projectId: currentProjectId, versionId: currentVersionId };
+      setEditorContent(pendingApply.draft.content);
+      setVersionName(pendingApply.draft.versionName || '');
+      setCanSaveInPlace(true);
+      void loadAttachments(currentVersionId);
+      setTimeout(() => {
+        editorRef.current?.focus();
+      }, 100);
+      return;
+    }
+
+    const draft = draftService.getDraft(currentProjectId, currentVersionId);
+    if (draft && isDraftDifferentFromSnapshot(draft, snapshot)) {
+      const snoozeKey = getDraftSnoozeKey(currentProjectId, currentVersionId, draft.draftUpdatedAt);
+      if (!snoozedDraftRef.current.has(snoozeKey)) {
+        setDraftNotice({
+          projectId: currentProjectId,
+          versionId: currentVersionId,
+          snapshot,
+          draft,
+        });
+      } else {
+        // 若用户关闭过提示条，则不再重复展示
+        setDraftNotice(null);
+      }
+    }
+
+    // 默认：直接加载版本快照
+    lastAppliedRef.current = { projectId: currentProjectId, versionId: currentVersionId };
+    setEditorContent(snapshot.content);
+    setVersionName(snapshot.versionName);
+    setCanSaveInPlace(true);
+    void loadAttachments(currentVersionId);
+    setTimeout(() => {
+      editorRef.current?.focus();
+    }, 100);
+  }, [currentProjectId, currentVersionId, getDraftSnoozeKey, loadAttachments, versions]);
 
   async function handleSave(): Promise<boolean> {
     if (isSaving) {
@@ -284,6 +600,7 @@ const MainView: React.FC = () => {
         .showToast({ message: t('pages.mainView.errors.selectProjectFirst'), variant: 'warning' });
       return false;
     }
+    const draftBucketVersionId = currentVersionId;
     setSavingAction('new');
     setLastSaveFailed(false);
     try {
@@ -296,6 +613,8 @@ const MainView: React.FC = () => {
       );
       setCurrentVersion(versionId);
       await loadVersions(currentProjectId);
+      // 保存成功后清理当前桶草稿（草稿内容已入库）
+      draftService.deleteDraft(currentProjectId, draftBucketVersionId);
       useOverlayStore.getState().showToast({
         message: t('pages.mainView.toasts.saved'),
         variant: 'success',
@@ -360,11 +679,14 @@ const MainView: React.FC = () => {
         .showToast({ message: t('pages.mainView.errors.selectVersionFirst'), variant: 'warning' });
       return false;
     }
+    const draftBucketVersionId = currentVersionId;
     setSavingAction('inPlace');
     setLastSaveFailed(false);
     try {
       await updateVersionInPlace(currentVersionId, editorContent, versionName);
       await loadVersions(currentProjectId!);
+      // 保存成功后清理当前桶草稿（草稿内容已入库）
+      draftService.deleteDraft(currentProjectId!, draftBucketVersionId);
       useOverlayStore.getState().showToast({
         message: t('pages.mainView.toasts.saved'),
         variant: 'success',
@@ -466,6 +788,88 @@ const MainView: React.FC = () => {
 
   const handleCloseCompare = useCallback(() => {
     useVersionStore.getState().closeCompare();
+  }, []);
+
+  const handleCloseDraftCompare = useCallback(() => {
+    setDraftCompare((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const handleDraftResumeEditing = useCallback(() => {
+    if (!draftNotice) return;
+    if (draftNotice.projectId !== currentProjectId) return;
+    if (draftNotice.versionId !== currentVersionId) return;
+
+    lastAppliedRef.current = { projectId: draftNotice.projectId, versionId: draftNotice.versionId };
+    setEditorContent(draftNotice.draft.content);
+    setVersionName(draftNotice.draft.versionName || '');
+    setCanSaveInPlace(true);
+    void loadAttachments(draftNotice.versionId);
+    setTimeout(() => editorRef.current?.focus(), 100);
+    setDraftNotice(null);
+  }, [currentProjectId, currentVersionId, draftNotice, loadAttachments]);
+
+  const handleDraftDiscardChanges = useCallback(() => {
+    if (!draftNotice) return;
+    draftService.deleteDraft(draftNotice.projectId, draftNotice.versionId);
+    setDraftNotice(null);
+  }, [draftNotice]);
+
+  const handleDraftDismissBanner = useCallback(() => {
+    if (!draftNotice) return;
+    const snoozeKey = getDraftSnoozeKey(
+      draftNotice.projectId,
+      draftNotice.versionId,
+      draftNotice.draft.draftUpdatedAt
+    );
+    snoozedDraftRef.current.add(snoozeKey);
+    setDraftNotice(null);
+  }, [draftNotice, getDraftSnoozeKey]);
+
+  const handleSwitchRestoreAndOpen = useCallback(async () => {
+    if (!draftSwitchPrompt) return;
+    const { intent, draft } = draftSwitchPrompt;
+    setDraftSwitchPrompt(null);
+
+    if (intent.type === 'switchVersion') {
+      pendingDraftApplyRef.current = {
+        projectId: intent.projectId,
+        versionId: intent.targetVersionId,
+        draft,
+      };
+      setCurrentVersion(intent.targetVersionId);
+      return;
+    }
+
+    pendingDraftApplyRef.current = {
+      projectId: intent.targetProjectId,
+      versionId: intent.targetVersionId,
+      draft,
+    };
+    pendingProjectInitialVersionIdRef.current = intent.targetVersionId;
+    useProjectStore.getState().selectProject(intent.targetProjectId, { updateUrl: true });
+    await useProjectStore.getState().expandFolderPathToProject(intent.targetProjectId);
+  }, [draftSwitchPrompt, setCurrentVersion]);
+
+  const handleSwitchDiscardAndOpen = useCallback(async () => {
+    if (!draftSwitchPrompt) return;
+    const { intent, draft } = draftSwitchPrompt;
+    setDraftSwitchPrompt(null);
+
+    draftService.deleteDraft(draft.projectId, draft.versionId);
+
+    if (intent.type === 'switchVersion') {
+      setCurrentVersion(intent.targetVersionId);
+      return;
+    }
+
+    pendingProjectInitialVersionIdRef.current = intent.targetVersionId;
+    useProjectStore.getState().selectProject(intent.targetProjectId, { updateUrl: true });
+    await useProjectStore.getState().expandFolderPathToProject(intent.targetProjectId);
+  }, [draftSwitchPrompt, setCurrentVersion]);
+
+  const handleSwitchCancel = useCallback(() => {
+    // 交互规范：切换触发必须“先决策”，取消即不切换
+    setDraftSwitchPrompt(null);
   }, []);
 
   return (
@@ -636,6 +1040,17 @@ const MainView: React.FC = () => {
               </div>
             )}
 
+            {draftNotice && currentProjectId && currentVersionId && (
+              <DraftBanner
+                snapshot={draftNotice.snapshot}
+                draft={draftNotice.draft}
+                onResumeEditing={handleDraftResumeEditing}
+                onDiscardDraft={handleDraftDiscardChanges}
+                onViewDiff={() => openDraftFullDiff(draftNotice.snapshot, draftNotice.draft)}
+                onDismiss={handleDraftDismissBanner}
+              />
+            )}
+
             {/* Editor & Attachment Container - Vertical Layout */}
             <div className="flex-1 flex flex-col overflow-hidden" ref={editorContainerRef}>
               {currentProjectId ? (
@@ -755,6 +1170,38 @@ const MainView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {draftSwitchPrompt && (
+        <DraftSwitchDialog
+          open
+          snapshot={draftSwitchPrompt.snapshot}
+          draft={draftSwitchPrompt.draft}
+          onRestoreAndOpen={handleSwitchRestoreAndOpen}
+          onDiscardAndOpen={handleSwitchDiscardAndOpen}
+          onCancelSwitch={handleSwitchCancel}
+          onViewDiff={() => openDraftFullDiff(draftSwitchPrompt.snapshot, draftSwitchPrompt.draft)}
+        />
+      )}
+
+      {draftCompare.isOpen && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-surface dark:bg-surface-dark rounded-2xl px-6 py-4 shadow-2xl border border-border dark:border-border-dark text-surface-onSurface dark:text-surface-onSurfaceDark">
+                {t('components.compareModal.title')}加载中...
+              </div>
+            </div>
+          }
+        >
+          <LazyCompareModal
+            isOpen={draftCompare.isOpen}
+            sourceVersion={draftCompare.sourceVersion}
+            targetVersion={draftCompare.targetVersion}
+            onClose={handleCloseDraftCompare}
+            title={draftCompare.title}
+          />
+        </Suspense>
+      )}
 
       {compareState.isOpen && (
         <Suspense

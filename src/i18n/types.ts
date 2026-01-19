@@ -69,6 +69,7 @@ export interface TranslationData {
     warning: string;
     info: string;
     switchLanguage: string;
+    unknown: string;
 
     /** 语言切换器 */
     languageSwitcher: {
@@ -91,6 +92,22 @@ export interface TranslationData {
       unsaved: string;
       unsavedSaveFailed: string;
       saving: string;
+      drafts: {
+        bannerTitle: string;
+        snapshot: string;
+        draft: string;
+        baseChangedHint: string;
+        bannerHelp: string;
+        resumeEditing: string;
+        discardDraftSimple: string;
+        viewDiff: string;
+
+        switchTitle: string;
+        switchDescription: string;
+        restoreAndOpen: string;
+        discardAndOpen: string;
+        cancelSwitch: string;
+      };
       unsavedChanges: {
         title: string;
         description: string;

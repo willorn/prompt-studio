@@ -26,6 +26,7 @@ export const enUS: TranslationData = {
     warning: 'Warning',
     info: 'Info',
     switchLanguage: 'Switch Language',
+    unknown: 'Unknown',
 
     languageSwitcher: {
       tooltip: 'Switch language here',
@@ -45,11 +46,30 @@ export const enUS: TranslationData = {
       unsaved: 'Unsaved',
       unsavedSaveFailed: 'Unsaved (save failed)',
       saving: 'Saving...',
+      drafts: {
+        bannerTitle: 'Unsaved content found',
+        snapshot: 'Snapshot',
+        draft: 'Draft',
+        baseChangedHint:
+          'Note: this version changed after your last edit. It is recommended to view the diff before deciding.',
+        bannerHelp:
+          '"Resume editing" switches the editor to your unsaved content; "Discard changes" deletes the unsaved content and keeps the saved version.',
+        resumeEditing: 'Resume editing',
+        discardDraftSimple: 'Discard changes',
+        viewDiff: 'View diff',
+
+        switchTitle: 'This version has unsaved content',
+        switchDescription:
+          'The version you are about to open has unsaved content. To avoid losing it, please choose what to do first.',
+        restoreAndOpen: 'Open with unsaved content',
+        discardAndOpen: 'Open without unsaved content',
+        cancelSwitch: 'Do not switch',
+      },
       unsavedChanges: {
         title: 'Unsaved changes',
         description: 'You have unsaved changes. Continuing will overwrite them.',
-        keep: 'Keep',
-        discard: 'Discard',
+        keep: 'Save & continue',
+        discard: 'Continue without saving',
         cancel: 'Cancel',
       },
       toasts: {

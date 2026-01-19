@@ -26,6 +26,7 @@ export const zhCN: TranslationData = {
     warning: '警告',
     info: '信息',
     switchLanguage: '切换语言',
+    unknown: '未知',
 
     languageSwitcher: {
       tooltip: '这里可以切换语言',
@@ -45,11 +46,29 @@ export const zhCN: TranslationData = {
       unsaved: '未保存',
       unsavedSaveFailed: '未保存（保存失败）',
       saving: '保存中...',
+      drafts: {
+        bannerTitle: '发现上次未保存内容',
+        snapshot: '版本快照',
+        draft: '草稿',
+        baseChangedHint: '注意：此版本在你上次编辑后已发生变化，建议先查看差异再决定。',
+        bannerHelp:
+          '“继续编辑”会把编辑器切换到你上次未保存的内容；“放弃更改”会删除这份未保存内容并保留当前已保存版本。',
+        resumeEditing: '继续编辑',
+        discardDraftSimple: '放弃更改',
+        viewDiff: '查看差异',
+
+        switchTitle: '该版本存在未保存内容',
+        switchDescription:
+          '你要打开的版本有一份未保存内容。为避免丢失，请先选择如何处理这份内容。',
+        restoreAndOpen: '带未保存内容打开',
+        discardAndOpen: '不带未保存内容打开',
+        cancelSwitch: '暂不切换',
+      },
       unsavedChanges: {
         title: '未保存的更改',
         description: '当前有未保存的更改，继续操作将覆盖这些内容。',
-        keep: '保留',
-        discard: '丢弃',
+        keep: '保存后继续',
+        discard: '不保存继续',
         cancel: '取消',
       },
       toasts: {
