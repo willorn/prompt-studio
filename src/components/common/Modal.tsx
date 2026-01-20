@@ -7,6 +7,11 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'small' | 'medium' | 'large' | 'fullscreen';
+  /**
+   * 允许按需覆盖 Dialog.Panel 的宽高/布局类名（用于少数需要“更宽弹窗”的场景）。
+   * 注意：尽量只在确有产品需求时使用，避免全局样式碎片化。
+   */
+  panelClassName?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -15,6 +20,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   size = 'medium',
+  panelClassName,
 }) => {
   const sizeClasses = {
     small: 'max-w-md',
@@ -50,7 +56,7 @@ export const Modal: React.FC<ModalProps> = ({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel
-                className={`transform overflow-hidden rounded-m3-large bg-surface dark:bg-surface-dark text-surface-onSurface dark:text-surface-onSurfaceDark shadow-m3-3 transition-all ${sizeClasses[size]}`}
+                className={`transform overflow-hidden rounded-m3-large bg-surface dark:bg-surface-dark text-surface-onSurface dark:text-surface-onSurfaceDark shadow-m3-3 transition-all ${sizeClasses[size]} ${panelClassName ?? ''}`}
               >
                 {title && (
                   <Dialog.Title

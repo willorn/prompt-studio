@@ -56,12 +56,13 @@ export const zhCN: TranslationData = {
         resumeEditing: '继续编辑',
         discardDraftSimple: '放弃更改',
         viewDiff: '查看差异',
+        hideDiff: '收起差异',
 
         switchTitle: '该版本存在未保存内容',
         switchDescription:
           '你要打开的版本有一份未保存内容。为避免丢失，请先选择如何处理这份内容。',
-        restoreAndOpen: '带未保存内容打开',
-        discardAndOpen: '不带未保存内容打开',
+        restoreAndOpen: '保留修改',
+        discardAndOpen: '抛弃修改',
         cancelSwitch: '暂不切换',
       },
       unsavedChanges: {

@@ -101,6 +101,7 @@ export interface TranslationData {
         resumeEditing: string;
         discardDraftSimple: string;
         viewDiff: string;
+        hideDiff: string;
 
         switchTitle: string;
         switchDescription: string;

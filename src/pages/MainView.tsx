@@ -114,6 +114,10 @@ const MainView: React.FC = () => {
   // 记录“用户关闭过提示条”的草稿，避免重复打扰（draftKey + draftUpdatedAt）
   const snoozedDraftRef = useRef<Set<string>>(new Set());
 
+  // “快速继续”标记：当用户在“未保存更改”里选择“不保存继续”时，本次目标版本的草稿不再用阻塞弹窗拦截，
+  // 统一改为切换后用 Banner 提示（草稿仍保留，避免二次弹窗打扰）。
+  const skipNextDraftSwitchPromptRef = useRef(false);
+
   // 防止 versions 刷新时覆盖用户正在编辑的内容：只在版本切换时把快照写入编辑器
   const lastAppliedRef = useRef<{ projectId: string | null; versionId: string | null }>({
     projectId: null,
@@ -196,6 +200,9 @@ const MainView: React.FC = () => {
 
     if (choice === 'cancel') return false;
     if (choice === 'discard') {
+      // 用户明确选择“不保存继续”：本次后续切换若遇到目标版本草稿，改为切换后用 Banner 告知，
+      // 避免连续弹两次“要不要处理未保存内容”的对话框造成困扰。
+      skipNextDraftSwitchPromptRef.current = true;
       // 丢弃当前编辑内容时，也应清理当前桶草稿（避免后续错误提示/误恢复）
       if (currentProjectId) {
         draftService.deleteDraft(currentProjectId, currentVersionId);
@@ -268,8 +275,19 @@ const MainView: React.FC = () => {
 
       const ok = await confirmUnsavedChangesAndContinue();
       if (!ok) return;
+      const skipDraftPromptOnce = skipNextDraftSwitchPromptRef.current;
+      skipNextDraftSwitchPromptRef.current = false;
 
-      const targetVersion = versions.find((v) => v.id === versionId) || null;
+      // 优先使用内存中的 versions；若目标版本不在内存（例如版本列表尚未加载完成），兜底从 DB 获取，
+      // 以便我们仍能做“目标版本草稿”的判断与提示，避免静默切换。
+      let targetVersion = versions.find((v) => v.id === versionId) || null;
+      if (!targetVersion) {
+        try {
+          targetVersion = (await db.versions.get(versionId)) ?? null;
+        } catch (e) {
+          console.warn('Failed to load target version from db:', e);
+        }
+      }
       if (!targetVersion) {
         setCurrentVersion(versionId);
         return;
@@ -284,6 +302,12 @@ const MainView: React.FC = () => {
 
       const draft = draftService.getDraft(currentProjectId, versionId);
       if (!draft || !isDraftDifferentFromSnapshot(draft, snapshot)) {
+        setCurrentVersion(versionId);
+        return;
+      }
+
+      if (skipDraftPromptOnce) {
+        // “快速继续”路径：直接切换到目标版本快照，草稿用 Banner 提示（不会静默恢复/删除）
         setCurrentVersion(versionId);
         return;
       }
@@ -309,6 +333,8 @@ const MainView: React.FC = () => {
 
       const ok = await confirmUnsavedChangesAndContinue();
       if (!ok) return;
+      const skipDraftPromptOnce = skipNextDraftSwitchPromptRef.current;
+      skipNextDraftSwitchPromptRef.current = false;
 
       // 预先计算该项目默认打开的版本（与现有自动选择逻辑一致：updatedAt 最大）
       const projectVersions = await db.versions.where('projectId').equals(projectId).toArray();
@@ -332,6 +358,14 @@ const MainView: React.FC = () => {
 
       const draft = draftService.getDraft(projectId, target.id);
       if (draft && isDraftDifferentFromSnapshot(draft, snapshot)) {
+        if (skipDraftPromptOnce) {
+          // “快速继续”路径：直接切换项目并打开目标版本快照，草稿用 Banner 提示（不会静默恢复/删除）
+          pendingProjectInitialVersionIdRef.current = target.id;
+          useProjectStore.getState().selectProject(projectId, { updateUrl: true });
+          await useProjectStore.getState().expandFolderPathToProject(projectId);
+          return;
+        }
+
         setDraftSwitchPrompt({
           intent: { type: 'switchProject', targetProjectId: projectId, targetVersionId: target.id },
           snapshot,
@@ -1179,7 +1213,6 @@ const MainView: React.FC = () => {
           onRestoreAndOpen={handleSwitchRestoreAndOpen}
           onDiscardAndOpen={handleSwitchDiscardAndOpen}
           onCancelSwitch={handleSwitchCancel}
-          onViewDiff={() => openDraftFullDiff(draftSwitchPrompt.snapshot, draftSwitchPrompt.draft)}
         />
       )}
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOverlayStore, type ToastVariant } from '@/store/overlayStore';
 import { Modal } from '@/components/common/Modal';
 import { MinimalButton } from '@/components/common/MinimalButton';
@@ -30,6 +30,12 @@ export const OverlayHost: React.FC = () => {
   const unsavedChanges = useOverlayStore((s) => s.unsavedChanges);
   const resolveUnsavedChanges = useOverlayStore((s) => s.resolveUnsavedChanges);
 
+  // 由于 Modal 有离场动画（200ms），如果我们立即把 store 状态清空，UI 会在离场瞬间回退到默认文案，
+  // 造成“取消/丢弃/保留”一闪而过。这里缓存上一次的状态用于离场渲染，避免闪烁。
+  type UnsavedChangesUiState = typeof unsavedChanges;
+  const [unsavedChangesUi, setUnsavedChangesUi] = useState<UnsavedChangesUiState>(null);
+  const unsavedChangesCloseTimerRef = useRef<number | null>(null);
+
   const [promptValue, setPromptValue] = useState('');
   const [promptError, setPromptError] = useState<string | null>(null);
 
@@ -54,6 +60,37 @@ export const OverlayHost: React.FC = () => {
     }
     resolvePrompt(promptValue);
   };
+
+  useEffect(() => {
+    // 打开：立即同步，确保首帧就有正确文案
+    if (unsavedChanges) {
+      if (unsavedChangesCloseTimerRef.current) {
+        window.clearTimeout(unsavedChangesCloseTimerRef.current);
+        unsavedChangesCloseTimerRef.current = null;
+      }
+      setUnsavedChangesUi(unsavedChanges);
+      return;
+    }
+
+    // 关闭：延迟清理，覆盖离场动画期间的渲染
+    if (!unsavedChangesUi) return;
+    if (unsavedChangesCloseTimerRef.current) {
+      window.clearTimeout(unsavedChangesCloseTimerRef.current);
+    }
+    unsavedChangesCloseTimerRef.current = window.setTimeout(() => {
+      setUnsavedChangesUi(null);
+      unsavedChangesCloseTimerRef.current = null;
+    }, 220);
+
+    return () => {
+      if (unsavedChangesCloseTimerRef.current) {
+        window.clearTimeout(unsavedChangesCloseTimerRef.current);
+        unsavedChangesCloseTimerRef.current = null;
+      }
+    };
+  }, [unsavedChanges, unsavedChangesUi]);
+
+  const unsavedChangesDisplay = unsavedChanges ?? unsavedChangesUi;
 
   return (
     <>
@@ -153,12 +190,12 @@ export const OverlayHost: React.FC = () => {
       <Modal
         isOpen={!!unsavedChanges}
         onClose={() => resolveUnsavedChanges('cancel')}
-        title={unsavedChanges?.title}
+        title={unsavedChangesDisplay?.title}
         size="small"
       >
-        {unsavedChanges?.description && (
+        {unsavedChangesDisplay?.description && (
           <p className="text-sm text-surface-onVariant dark:text-surface-onVariantDark">
-            {unsavedChanges.description}
+            {unsavedChangesDisplay.description}
           </p>
         )}
         <div className="mt-6 flex items-center justify-end gap-2">
@@ -167,14 +204,14 @@ export const OverlayHost: React.FC = () => {
             onClick={() => resolveUnsavedChanges('cancel')}
             className="px-4 py-2"
           >
-            {unsavedChanges?.cancelText ?? '取消'}
+            {unsavedChangesDisplay?.cancelText ?? '取消'}
           </MinimalButton>
           <MinimalButton
             variant="danger"
             onClick={() => resolveUnsavedChanges('discard')}
             className="px-4 py-2"
           >
-            {unsavedChanges?.discardText ?? '丢弃'}
+            {unsavedChangesDisplay?.discardText ?? '丢弃'}
           </MinimalButton>
           <MinimalButton
             variant="default"
@@ -182,7 +219,7 @@ export const OverlayHost: React.FC = () => {
             className="px-4 py-2"
             autoFocus
           >
-            {unsavedChanges?.keepText ?? '保留'}
+            {unsavedChangesDisplay?.keepText ?? '保留'}
           </MinimalButton>
         </div>
       </Modal>

@@ -57,12 +57,13 @@ export const enUS: TranslationData = {
         resumeEditing: 'Resume editing',
         discardDraftSimple: 'Discard changes',
         viewDiff: 'View diff',
+        hideDiff: 'Hide diff',
 
         switchTitle: 'This version has unsaved content',
         switchDescription:
           'The version you are about to open has unsaved content. To avoid losing it, please choose what to do first.',
-        restoreAndOpen: 'Open with unsaved content',
-        discardAndOpen: 'Open without unsaved content',
+        restoreAndOpen: 'Keep changes',
+        discardAndOpen: 'Discard changes',
         cancelSwitch: 'Do not switch',
       },
       unsavedChanges: {
